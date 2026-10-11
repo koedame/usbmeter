@@ -25,7 +25,7 @@ that add it, such as Bluefy). **Try the demo** shows made-up readings without a 
 | J7-C | USB | Checked against frames recorded from a real J7-C (values match its screen) |
 | ATorch UD18 and similar | USB | Checked against published sample packets |
 | ATorch AC meters (AC18 and similar) | AC | Checked against published sample packets |
-| ATorch DC meters, AT24 and others with the same protocol | DC | Experimental: not confirmed on a device |
+| ATorch DC meters, AT24 and others with the same protocol | DC | Experimental: voltage, current, power, temperature and time; capacity and energy are not decoded yet (the published layouts disagree) |
 
 The type (USB / DC / AC) is read from the data, so a model not listed here may still work.
 If your meter connects but shows nothing, please open an issue with its name and model.

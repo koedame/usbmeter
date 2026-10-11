@@ -52,7 +52,7 @@ export class History {
         r.voltage,
         r.current,
         r.power,
-        r.energyWh,
+        r.energyWh ?? "",
         r.capacityAh ?? "",
         r.temperatureC,
         r.dPlus ?? "",

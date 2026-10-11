@@ -181,6 +181,10 @@ select:focus-visible {
   color: var(--muted);
 }
 
+.status[hidden] {
+  display: none;
+}
+
 .notice {
   margin: 12px 0 0;
   padding: 10px 12px;
@@ -242,10 +246,6 @@ select:focus-visible {
 
 .reading--big .reading__value small {
   font-size: 1rem;
-}
-
-output {
-  font: inherit;
 }
 
 .select {

@@ -136,7 +136,14 @@ function installFakeBluetooth(frames) {
     addEventListener() {},
     removeEventListener() {},
   };
-  Object.defineProperty(navigator, "bluetooth", { value: { requestDevice: async () => device } });
+  Object.defineProperty(navigator, "bluetooth", {
+    value: {
+      requestDevice: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 800)); // the picker takes a while
+        return device;
+      },
+    },
+  });
 }
 
 await mkdir(OUT, { recursive: true });
@@ -170,6 +177,8 @@ for (const screen of SCREENS) {
     await page.waitForTimeout(6000);
   } else {
     await page.getByRole("button", { name: "Connect to meter" }).click();
+    if (!(await page.getByRole("button", { name: "Try the demo" }).isDisabled()))
+      problems.push(`${screen.name}: the demo can be started while a connection is pending`);
     await page.getByRole("button", { name: "Disconnect" }).waitFor();
     const first = await page.evaluate(() =>
       Object.fromEntries(

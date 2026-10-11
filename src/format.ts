@@ -21,8 +21,9 @@ export function formatPower(reading: Reading): string {
 }
 
 export function formatEnergy(reading: Reading): { value: string; unit: string } {
-  if (reading.kind === "ac") return { value: (reading.energyWh / 1000).toFixed(2), unit: "kWh" };
-  return { value: reading.energyWh.toFixed(2), unit: "Wh" };
+  const energyWh = reading.energyWh ?? 0;
+  if (reading.kind === "ac") return { value: (energyWh / 1000).toFixed(2), unit: "kWh" };
+  return { value: energyWh.toFixed(2), unit: "Wh" };
 }
 
 export function formatCapacity(capacityAh: number): string {

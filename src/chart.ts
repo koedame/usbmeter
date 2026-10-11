@@ -1,9 +1,9 @@
 import type { Metric, Sample } from "./history.ts";
 
-export const METRICS: Record<Metric, { label: string; unit: string }> = {
-  power: { label: "Power", unit: "W" },
-  voltage: { label: "Voltage", unit: "V" },
-  current: { label: "Current", unit: "A" },
+const METRICS: Record<Metric, { minSpan: number }> = {
+  power: { minSpan: 1 },
+  voltage: { minSpan: 1 },
+  current: { minSpan: 0.1 },
 };
 
 interface Colors {
@@ -25,6 +25,25 @@ export function niceStep(span: number, ticks: number): number {
   const unit = rough / magnitude;
   const nice = unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 5 ? 5 : 10;
   return nice * magnitude;
+}
+
+/** The y-axis for the values on screen: always includes 0, never narrower than `minSpan` (so an idle 0 A meter does not get a 5e-7 axis) */
+export function axisRange(
+  values: number[],
+  minSpan: number,
+): { bottom: number; top: number; step: number } {
+  let max = 0;
+  let min = 0;
+  for (const v of values) {
+    if (v > max) max = v;
+    if (v < min) min = v;
+  }
+  const step = niceStep(Math.max(max - min, minSpan), 4);
+  return {
+    bottom: Math.floor(min / step) * step,
+    top: Math.max(Math.ceil(max / step) * step, step),
+    step,
+  };
 }
 
 export function drawChart(canvas: HTMLCanvasElement, samples: Sample[], metric: Metric): void {
@@ -49,12 +68,10 @@ export function drawChart(canvas: HTMLCanvasElement, samples: Sample[], metric: 
     return;
   }
 
-  const values = samples.map((s) => s.reading[metric]);
-  const max = Math.max(...values, 0);
-  const min = Math.min(...values, 0);
-  const step = niceStep(Math.max(max - min, 1e-6), 4);
-  const top = Math.ceil(max / step) * step || step;
-  const bottom = Math.floor(min / step) * step;
+  const { bottom, top, step } = axisRange(
+    samples.map((s) => s.reading[metric]),
+    METRICS[metric].minSpan,
+  );
 
   const plot = { left: 44, right: width - 12, top: 10, bottom: height - 24 };
   const x = (t: number) =>

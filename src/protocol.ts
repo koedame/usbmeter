@@ -17,7 +17,7 @@ export interface Reading {
   voltage: number; // V
   current: number; // A
   power: number; // W
-  energyWh: number; // Wh
+  energyWh?: number; // Wh (not available on DC meters, see parseReport)
   temperatureC: number;
   durationSec: number;
   backlightSec: number;
@@ -95,7 +95,7 @@ export function parseReport(frame: Uint8Array): Reading | undefined {
       voltage,
       current,
       power: be(frame, 10, 3) / 10,
-      energyWh: (be(frame, 13, 4) / 100) * 1000, // the counter is in kWh
+      energyWh: be(frame, 13, 4) * 10, // the counter is in units of 0.01 kWh
       pricePerKwh: be(frame, 17, 3) / 100,
       frequencyHz: be(frame, 20, 2) / 10,
       powerFactor: be(frame, 22, 2) / 1000,
@@ -103,13 +103,13 @@ export function parseReport(frame: Uint8Array): Reading | undefined {
     };
   }
 
-  // DC meters: the energy counter sits right after the current. Not confirmed on a device.
+  // DC meters: the capacity and energy counters are not decoded, because the published
+  // layouts disagree and none was confirmed on a device. Better no number than a wrong one.
   return {
     kind,
     voltage,
     current,
     power: round(voltage * current, 3),
-    energyWh: be(frame, 10, 4) / 100,
     pricePerKwh: be(frame, 17, 3) / 100,
     ...timeAndBacklight,
   };
@@ -140,14 +140,19 @@ export class FrameStream {
         continue;
       }
       if (this.buffer.length < length) break;
+      const inner = this.findHeader(1, length);
+      if (inner > 0) {
+        this.buffer = this.buffer.slice(inner); // a notification was lost: this frame is cut short
+        continue;
+      }
       frames.push(Uint8Array.from(this.buffer.slice(0, length)));
       this.buffer = this.buffer.slice(length);
     }
     return frames;
   }
 
-  private findHeader(): number {
-    for (let i = 0; i + 1 < this.buffer.length; i++) {
+  private findHeader(from = 0, to = this.buffer.length): number {
+    for (let i = from; i + 1 < to; i++) {
       if (this.buffer[i] === 0xff && this.buffer[i + 1] === 0x55) return i;
     }
     return -1;
@@ -177,7 +182,7 @@ export function encodeReport(reading: Reading): Uint8Array {
     put(4, 3, reading.voltage * 100);
     put(7, 3, reading.current * 100);
     put(10, 3, (reading.capacityAh ?? 0) * 1000);
-    put(13, 4, reading.energyWh * 100);
+    put(13, 4, (reading.energyWh ?? 0) * 100);
     put(17, 2, (reading.dMinus ?? 0) * 100);
     put(19, 2, (reading.dPlus ?? 0) * 100);
     put(21, 2, reading.temperatureC);
@@ -190,11 +195,9 @@ export function encodeReport(reading: Reading): Uint8Array {
     put(7, 3, reading.current * 1000);
     if (reading.kind === "ac") {
       put(10, 3, reading.power * 10);
-      put(13, 4, (reading.energyWh / 1000) * 100);
+      put(13, 4, (reading.energyWh ?? 0) / 10);
       put(20, 2, (reading.frequencyHz ?? 0) * 10);
       put(22, 2, (reading.powerFactor ?? 0) * 1000);
-    } else {
-      put(10, 4, reading.energyWh * 100);
     }
     put(17, 3, (reading.pricePerKwh ?? 0) * 100);
     put(24, 2, reading.temperatureC);

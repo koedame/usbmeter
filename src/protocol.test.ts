@@ -83,17 +83,17 @@ describe("parseReport", () => {
     });
   });
 
-  it("when the frame is a DC meter report, reads voltage, current, energy and time", () => {
+  it("when the frame is a DC meter report, reads voltage, current and time, and leaves the unconfirmed energy out", () => {
     const reading = parseReport(hexToBytes(DC_IDLE));
     expect(reading).toMatchObject({
       kind: "dc",
       voltage: 28.2,
       current: 0.06,
-      energyWh: 3164.16,
       temperatureC: 38,
       durationSec: 89 * 3600 + 13 * 60 + 54,
       checksumOk: true,
     });
+    expect(reading?.energyWh).toBeUndefined();
   });
 
   it("when the frame is a reply or has a wrong length, returns nothing", () => {
@@ -158,5 +158,15 @@ describe("encodeReport", () => {
       expect(reading).toBeDefined();
       if (reading) expect(encodeReport(reading)).toEqual(hexToBytes(hex));
     }
+  });
+});
+
+describe("FrameStream after a lost notification", () => {
+  const frame = hexToBytes(UD18_IDLE);
+
+  it("when the second half of a report is lost, drops the stump and returns the next whole report", () => {
+    const stream = new FrameStream();
+    expect(stream.push(frame.slice(0, 20))).toEqual([]);
+    expect(stream.push(frame)).toEqual([frame]);
   });
 });

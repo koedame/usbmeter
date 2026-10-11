@@ -55,6 +55,10 @@
         <p class="status" id="status" role="status">
           Turn the meter on, then choose Connect and pick it from the list.
         </p>
+        <p class="status" id="checksum-note" hidden>
+          This meter does not use the ATorch checksum, so readings are shown without checksum
+          verification.
+        </p>
         <p class="notice" id="unsupported" hidden>
           This browser cannot talk to Bluetooth devices. Use Chrome or Edge on a computer or an
           Android phone. The demo works everywhere.
@@ -66,49 +70,49 @@
         <div class="primary-readings">
           <div class="reading reading--big">
             <span class="reading__label">Voltage</span>
-            <span class="reading__value"><output id="voltage">–</output><small>V</small></span>
+            <span class="reading__value"><span id="voltage">–</span><small>V</small></span>
           </div>
           <div class="reading reading--big">
             <span class="reading__label">Current</span>
-            <span class="reading__value"><output id="current">–</output><small>A</small></span>
+            <span class="reading__value"><span id="current">–</span><small>A</small></span>
           </div>
           <div class="reading reading--big">
             <span class="reading__label">Power</span>
-            <span class="reading__value"><output id="power">–</output><small>W</small></span>
+            <span class="reading__value"><span id="power">–</span><small>W</small></span>
           </div>
         </div>
         <div class="secondary-readings">
           <div class="reading" data-for="usb">
             <span class="reading__label">Capacity</span>
-            <span class="reading__value"><output id="capacity">–</output><small>mAh</small></span>
+            <span class="reading__value"><span id="capacity">–</span><small>mAh</small></span>
           </div>
-          <div class="reading">
+          <div class="reading" data-for="usb ac">
             <span class="reading__label">Energy</span>
-            <span class="reading__value"><output id="energy">–</output><small id="energy-unit">Wh</small></span>
+            <span class="reading__value"><span id="energy">–</span><small id="energy-unit">Wh</small></span>
           </div>
           <div class="reading">
             <span class="reading__label">Time</span>
-            <span class="reading__value"><output id="duration">–</output></span>
+            <span class="reading__value"><span id="duration">–</span></span>
           </div>
           <div class="reading">
             <span class="reading__label">Temperature</span>
-            <span class="reading__value"><output id="temperature">–</output><small>°C</small></span>
+            <span class="reading__value"><span id="temperature">–</span><small>°C</small></span>
           </div>
           <div class="reading" data-for="usb">
             <span class="reading__label">D+</span>
-            <span class="reading__value"><output id="dplus">–</output><small>V</small></span>
+            <span class="reading__value"><span id="dplus">–</span><small>V</small></span>
           </div>
           <div class="reading" data-for="usb">
             <span class="reading__label">D−</span>
-            <span class="reading__value"><output id="dminus">–</output><small>V</small></span>
+            <span class="reading__value"><span id="dminus">–</span><small>V</small></span>
           </div>
           <div class="reading" data-for="ac" hidden>
             <span class="reading__label">Frequency</span>
-            <span class="reading__value"><output id="frequency">–</output><small>Hz</small></span>
+            <span class="reading__value"><span id="frequency">–</span><small>Hz</small></span>
           </div>
           <div class="reading" data-for="ac" hidden>
             <span class="reading__label">Power factor</span>
-            <span class="reading__value"><output id="pf">–</output></span>
+            <span class="reading__value"><span id="pf">–</span></span>
           </div>
         </div>
       </section>
@@ -164,7 +168,7 @@
             <tr><td>J7-C</td><td>USB</td><td>Checked against frames recorded from a real J7-C</td></tr>
             <tr><td>ATorch UD18 and other USB meters of the same family</td><td>USB</td><td>Checked against published sample packets</td></tr>
             <tr><td>ATorch AC meters (AC18 and similar)</td><td>AC mains</td><td>Checked against published sample packets</td></tr>
-            <tr><td>ATorch DC meters, AT24 and other models using the same protocol</td><td>DC</td><td>Experimental: the type is detected from the data, but the numbers are not confirmed on a device</td></tr>
+            <tr><td>ATorch DC meters, AT24 and other models using the same protocol</td><td>DC</td><td>Experimental: voltage, current, power, temperature and time. Capacity and energy are not decoded yet</td></tr>
           </tbody>
         </table>
         <p>
