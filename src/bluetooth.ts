@@ -28,7 +28,10 @@ export function knownMeterName(name: string | undefined): boolean {
   return name !== undefined && METER_NAME_PREFIXES.some((prefix) => name.startsWith(prefix));
 }
 
-/** A device name fit to show. A J7-C pads its name with NUL characters, which some fonts draw as boxes. */
+/**
+ * A device name fit to show. A J7-C name can arrive padded with NUL characters, which some
+ * fonts draw as boxes.
+ */
 export function shownName(name: string | undefined): string | undefined {
   return name?.replaceAll("\0", "") || undefined;
 }

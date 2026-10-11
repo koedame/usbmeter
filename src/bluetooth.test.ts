@@ -38,7 +38,7 @@ describe("METER_FILTERS", () => {
 });
 
 describe("knownMeterName", () => {
-  it("when the name starts like a known meter, also with the NUL padding of a J7-C, it is known", () => {
+  it("when the name starts like a known meter, also when padded with NUL characters, it is known", () => {
     expect(["UC96_BLE", "UC96_BLE\0\0\0", "DL24M_BLE"].map(knownMeterName)).toEqual([
       true,
       true,
@@ -57,7 +57,7 @@ describe("knownMeterName", () => {
 });
 
 describe("shownName", () => {
-  it("when a J7-C pads its name with NUL characters, the padding is not shown", () => {
+  it("when a name arrives padded with NUL characters, the padding is not shown", () => {
     expect(shownName("UC96_BLE\0\0\0")).toBe("UC96_BLE");
   });
 

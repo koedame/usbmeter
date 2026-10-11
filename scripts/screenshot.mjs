@@ -51,7 +51,8 @@ const J7C_FRAMES = [
 const AC_FRAME = "FF55010100090400000E0000040000000000006401F40085002F00000A093C0000000039";
 const DC_FRAME = "FF55010200011A00003C0004D40000002000006400000000002600590D363C00000000F0";
 
-// A J7-C pads its advertised name with NUL characters (tools that scan for it strip them)
+// A J7-C name can arrive padded with NUL characters (tools that scan for it strip them), so
+// the fake meter pads its name
 const J7C_NAME = "UC96_BLE\u0000\u0000\u0000";
 
 /** What the status line says about a meter that is missing from the picker (src/main.ts) */

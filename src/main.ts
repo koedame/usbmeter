@@ -17,9 +17,11 @@ const PILL_TEXT: Record<State, string> = {
 };
 
 // The browser's list shows only the devices it hears while the list is open, and it says
-// nothing when that leaves the list empty. So the page says what a meter needs to be in it.
+// nothing when that leaves the list empty. So the page says what a meter needs to be in it
+// and what to try when it is still missing: a J7-C that had stopped advertising was heard
+// again right after it was plugged back in.
 const LISTED_WHEN =
-  "A meter is listed only while it is nearby and powered, its Bluetooth is on and nothing else, such as a phone app or another tab, is connected to it.";
+  "A meter is listed only while it is nearby and powered, its Bluetooth is on and nothing else, such as a phone app or another tab, is connected to it. If it stays missing, unplug the meter and plug it back in.";
 
 function element<T extends HTMLElement>(id: string): T {
   const found = document.getElementById(id);

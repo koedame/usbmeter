@@ -39,10 +39,10 @@ stream straight from the meter and shows everything it sends, all at once.
 
 A meter is listed only while the browser can hear it: it needs to be nearby and powered, with
 its Bluetooth switched on and no other connection, because these meters talk to one device at a
-time. Close the phone app first. If yours is ready and still missing, cancel the list and choose
-**Show all Bluetooth devices**. When the page does not know the name of a meter connected that
-way, it says so; please [open an issue](https://github.com/koedame/usbmeter/issues) with that
-name so it can be added.
+time. Close the phone app first. If the meter stays missing, unplug it and plug it back in; if
+that does not help, cancel the list and choose **Show all Bluetooth devices**. When the page
+does not know the name of a meter connected that way, it says so; please
+[open an issue](https://github.com/koedame/usbmeter/issues) with that name so it can be added.
 
 ## Supported meters
 
