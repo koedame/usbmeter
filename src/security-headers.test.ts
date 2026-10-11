@@ -36,6 +36,23 @@ function csp(): Record<string, string[]> {
 }
 
 describe("production headers", () => {
+  it("when a rule is added to the policy or a second set of headers to the file, a test has to say why", () => {
+    expect(Object.keys(csp()).sort()).toEqual([
+      "base-uri",
+      "connect-src",
+      "default-src",
+      "font-src",
+      "form-action",
+      "frame-ancestors",
+      "img-src",
+      "object-src",
+      "script-src",
+      "style-src",
+    ]);
+    // a path pattern starts its line; the headers under it are indented
+    expect(file.split("\n").filter((line) => /^[^\s#]/.test(line))).toEqual(["/*"]);
+  });
+
   it("when the page loads scripts, only the site's own files run (no inline code, no eval)", () => {
     expect(csp()["script-src"]).toEqual(["'self'"]);
   });

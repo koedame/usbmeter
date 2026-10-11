@@ -1,8 +1,12 @@
 version: 2
 
-# minor / patch は週に 1 本の PR にまとめる。major は依存ごとに別の PR にする。
-# セキュリティ更新はグループに入らず、アラートごとにすぐ PR が立つ。
+# Minor and patch updates come as one pull request a week, major ones one per dependency.
+# Security updates are not grouped: each alert gets its own pull request right away.
 updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
