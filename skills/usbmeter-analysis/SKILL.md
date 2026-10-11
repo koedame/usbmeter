@@ -1,6 +1,6 @@
 ---
 name: usbmeter-analysis
-description: Analyse a USB Meter Web recording from a Bluetooth USB tester such as the J7-C: the export ZIP (README.md and readings.csv) or a usb-meter CSV with voltage_v, current_a and power_w columns.
+description: Analyse a USB Meter Web recording from a Bluetooth USB tester such as the J7-C, given as the export ZIP (README.md and readings.csv) or a usb-meter CSV with voltage_v, current_a and power_w columns.
 ---
 
 # How to analyse a USB Meter Web recording
@@ -93,7 +93,8 @@ voltages on the two data lines, and some fast-charging schemes ask for a higher 
 | about 0.6 V | about 0.6 V | Quick Charge asking for 12 V |
 | about 3.3 V | about 3.3 V | Quick Charge asking for 20 V (class B chargers) |
 | about 0.6 V | about 3.3 V | Quick Charge 3.0 continuous mode (voltage moves in 0.2 V steps) |
-| equal, at any other voltage | | Lines tied together: a dedicated charging port (USB BC 1.2), up to 1.5 A |
+| equal and clearly above 0 V, at any other voltage | | Lines tied together: a dedicated charging port (USB BC 1.2), up to 1.5 A |
+| about 0 V | about 0 V | Nothing is signalled on the data lines |
 
 The Quick Charge rows count only together with the voltage they ask for. 0.6 V on both lines
 while `voltage_v` stays at 5 V is a dedicated charging port (the tied lines carry the device's
@@ -156,19 +157,23 @@ The person wants to know whether the charger delivers what it promises and holds
 The person wants the real capacity and how it compares with the label.
 
 - **Which direction.** Work out from the notes whether the power bank was being discharged
-  into a load (meter on its output) or charged (meter on its input).
+  into a load (meter on its output) or charged (meter at the charger, the cable to the power
+  bank after it).
 - **Discharge.** Energy (Wh) and charge (Ah) from the start until the power bank switched its
   output off. A meter that is fed by the power bank loses power at that moment, so the rows
-  simply end, often after the voltage sagged; they do not show the current falling to zero. A
-  recording that someone stopped while current still flowed covers only part of the capacity.
-  The notes should say which it was; ask when they do not.
+  simply end; they do not show the current falling to zero. A steady current with a sagging
+  voltage before the end means it ran empty. A current that had fallen to a small value means
+  the load stopped asking, and many power banks switch off below a small current, so that is
+  not the whole capacity. Neither is a recording that someone stopped while current still
+  flowed. The notes should say which it was; ask when they do not.
 - **Against the label.** The mAh on a power bank count charge at the cell voltage (about 3.7 V),
   not at the 5 V or more of the output, so comparing mAh with mAh makes every power bank look
   bad: about 70 % of the printed mAh at a 5 V output is as much as a good one delivers. Compare
   energy instead: rated Wh (printed, or rated mAh × 3.7 ÷ 1000) against delivered Wh, and give
   the ratio.
 - **Charge and discharge together.** With recordings of both, energy out ÷ energy in is the
-  round-trip efficiency.
+  round-trip efficiency. Energy in is measured at the charger and includes the loss in the
+  cable to the power bank, so the ratio is a lower bound.
 - **Reading it right.** The result depends on the load: a higher current gives less energy.
   Name the mean current and voltage the test ran at.
 
@@ -177,16 +182,17 @@ The person wants the real capacity and how it compares with the label.
 The person wants to know how much voltage a cable loses, or which of two cables is better.
 
 - **Where the meter was.** Find out from the notes first. A meter sees the loss in a cable
-  only when the cable comes before it: charger, cable, meter, load. A J7-C is usually plugged
-  straight into the charger with the cable after it; then the loss in the cable does not show
-  in `voltage_v` at all.
+  only when the cable comes before it: charger, cable, meter, load. That needs a meter with an
+  input socket for the cable (a J7-C has USB-C and micro-USB inputs besides its plug). A meter
+  plugged straight into the charger has the cable after it; then the loss in the cable does
+  not show in `voltage_v` at all.
 - **Cable before the meter, two recordings** with the same charger and the same load, one with
-  the cable and one without (or with a known good cable): the difference in voltage at the
-  same current, divided by that current, is the resistance of the cable. Give it in mΩ and as
-  the drop at 1 A and at 3 A.
+  the cable and one without: the difference in voltage at the same current, divided by that
+  current, is the resistance of the cable. Against a reference cable instead of none, it is
+  the extra resistance over that cable. Give it in mΩ and as the drop at 1 A and at 3 A.
 - **Cable before the meter, one recording** with a load that varies: the slope of voltage
   against current is the resistance of everything before the meter, charger included. That is
-  an upper bound for the cable.
+  an upper bound for the cable, unless the charger raises its voltage with the current.
 - **Cable after the meter.** Compare what the same device draws through each cable from the
   same battery level: a lower current, or a step down from a fast-charging voltage, points to
   the weaker cable. This ranks cables; it gives no resistance.

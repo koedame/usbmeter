@@ -667,13 +667,27 @@ a {
     order: 1; /* after the range, at the right edge */
   }
 
-  /* beside the totals in the smallest window: tighter, so D+ and D− stay on one line and leave their plot its height */
+  /*
+   * Beside the totals in the smallest window: D+ and D− stay on one line, so their plot keeps
+   * its height. The head gets tighter, and with a wide font the title is cut short instead.
+   */
   @container (max-width: 339px) {
     .panel--small .panel__head {
       padding-inline: 10px;
     }
 
+    .panel--small .panel__title {
+      min-width: 0;
+    }
+
+    .panel--small .panel__name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .panel--small .panel__readouts {
+      flex: none;
+      flex-wrap: nowrap;
       column-gap: 8px;
     }
   }

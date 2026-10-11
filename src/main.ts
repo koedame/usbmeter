@@ -65,7 +65,7 @@ const supported = bluetoothSupported();
 interface Session {
   source: Source;
   stream: FrameStream;
-  /** Bluetooth name of the meter, once it is connected and when it has one */
+  /** Bluetooth name of the meter once it is connected, "unnamed meter" when it has none */
   meterName: string | undefined;
   stop(): void;
 }
@@ -194,7 +194,7 @@ async function connect(anyDevice = false): Promise<void> {
     }
     mine.stop = connection.disconnect;
     if (mine !== session) return connection.disconnect();
-    mine.meterName = connection.name;
+    mine.meterName = connection.name ?? "unnamed meter";
     let status = `Reading from ${connection.name ?? "a meter without a Bluetooth name"}.`;
     if (anyDevice && connection.name !== undefined && !connection.knownName)
       status += ` This page does not know that name yet; report it as "${connection.exactName}" through Help so it can be added.`;

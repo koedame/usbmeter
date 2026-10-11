@@ -77,7 +77,7 @@ function meter(details: RecordingDetails): string {
   const kind = KIND_NAME[details.kind];
   if (names.length === 0) return kind;
   if (names.length === 1) return `${names[0]}, ${kind}`;
-  return `${names.join(", then ")}. The rows come from ${names.length} meters connected in that order; the last one is ${kind}.`;
+  return `${names.join(", then ")}. The rows come from more than one meter, connected in that order; the last one is ${kind}.`;
 }
 
 function recordingRows(summary: Summary, details: RecordingDetails, missingS: number): string[][] {

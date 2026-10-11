@@ -209,7 +209,7 @@ describe("recordingReadme", () => {
   it("when another meter was connected during the recording, the README names both in order", () => {
     const text = readme({ meterNames: ["UC96_BLE", "UD18-BLE"] });
     expect(text).toContain(
-      "| Meter | UC96_BLE, then UD18-BLE. The rows come from 2 meters connected in that order; the last one is a USB meter. |",
+      "| Meter | UC96_BLE, then UD18-BLE. The rows come from more than one meter, connected in that order; the last one is a USB meter. |",
     );
   });
 
@@ -282,6 +282,8 @@ describe("skillArchive", () => {
     expect(description.length).toBeGreaterThan(0);
     expect(description.length).toBeLessThanOrEqual(200);
     expect(description).not.toMatch(/[<>]/);
+    // the value is a plain YAML scalar: ": " or " #" inside it would end it or break the file
+    expect(description).not.toMatch(/: | #/);
   });
 
   it("when the skill names a column, that column is in the CSV header", () => {
