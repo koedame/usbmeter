@@ -603,6 +603,10 @@ function inspectRoom() {
       if (box.top < bar.top - 0.5 || box.bottom > bar.bottom + 0.5)
         found.push(`"${node.textContent.trim().slice(0, 30)}" sticks out of the top bar`);
     }
+    // ... and the badge beside the page's name does not slide over it
+    const name = document.querySelector(".brand h1").getBoundingClientRect();
+    if (name.right > document.querySelector(".pill").getBoundingClientRect().left + 0.5)
+      found.push("the badge covers the name of the page");
   }
   return found;
 }
@@ -615,7 +619,9 @@ for (const { tag, messages } of LOCALES) {
     ["mobile", MOBILE, "dark", "demo"],
   ]) {
     const name = `${tag}-${window}`;
-    const { page, fail } = await openPage(name, BROWSER_LANGUAGE[tag], viewport, colorScheme);
+    // a language without an entry is asked for by its own tag
+    const asked = BROWSER_LANGUAGE[tag] ?? tag;
+    const { page, fail } = await openPage(name, asked, viewport, colorScheme);
     if (source === "fake-ble")
       await page.addInitScript(installFakeBluetooth, {
         frames: J7C_FRAMES,
@@ -635,9 +641,7 @@ for (const { tag, messages } of LOCALES) {
       ]),
     }));
     if (start.lang !== tag || start.listed !== tag)
-      fail(
-        `a ${BROWSER_LANGUAGE[tag]} browser gets <html lang="${start.lang}">, list on ${start.listed}`,
-      );
+      fail(`a ${asked} browser gets <html lang="${start.lang}">, list on ${start.listed}`);
     if (start.title !== messages["meta.title"]) fail(`the tab is titled "${start.title}"`);
     // (spaces compared as plain ones: a translation may use no-break spaces, which \s takes too)
     for (const [key, text] of start.texts)

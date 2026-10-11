@@ -89,8 +89,10 @@ are translations with the same keys; the type checker stops a build in which one
   translation keeps the marks and moves them to where its sentence needs them. Text reaches the
   page as text only, never as HTML.
 - **To add a language**, copy `en.ts` to `<tag>.ts`, translate the values and list it in
-  `LOCALES` in `src/i18n.ts` and in `inLanguage` in `index.html`. Fixes to a translation by
-  native speakers are very welcome.
+  `LOCALES` in `src/i18n.ts`, in `inLanguage` in `index.html` and in the README. When the
+  language is spoken in several countries, name one of them in `BROWSER_LANGUAGE` in
+  `scripts/screenshot.mjs`, so that the browser check opens it the way such a browser asks for
+  it. Fixes to a translation by native speakers are very welcome.
 
 The export's README and the analysis guide stay in English: they are written for the assistant,
 which reads English and answers in the language it is asked in.

@@ -1,5 +1,6 @@
 // Every text the page shows, in English. The other files in this folder are translations of
-// this one and have the same keys; index.html gets its text from here when the page is built.
+// this one and have the same keys. index.html carries the same English text for before the
+// script has run, and src/page.test.ts keeps the two the same.
 //
 // "{name}" is filled in by the page. "<b>…</b>" and other "<word>…</word>" pairs wrap the part
 // of a sentence that goes into an element of index.html (a bold label, a link, a button); a

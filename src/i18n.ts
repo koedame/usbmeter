@@ -13,12 +13,13 @@ import { ru } from "./locales/ru.ts";
 import { zhHans } from "./locales/zh-Hans.ts";
 import { zhHant } from "./locales/zh-Hant.ts";
 
+/** What the page falls back to */
+const ENGLISH = { tag: "en", name: "English", messages: en } as const;
+
 /**
  * The languages on offer, in the order of the language list: the tag that goes into
  * <html lang> and into the address (?lang=), and the language's own name for itself.
  */
-const ENGLISH = { tag: "en", name: "English", messages: en } as const;
-
 export const LOCALES = [
   { tag: "de", name: "Deutsch", messages: de },
   ENGLISH,
@@ -113,7 +114,7 @@ export function segments(message: string): { text: string; slot?: string }[] {
  */
 export function translate(root: ParentNode): void {
   for (const element of root.querySelectorAll<HTMLElement>("[data-i18n]")) {
-    const key = element.dataset.i18n as MessageKey; // the build stops on a key it does not know
+    const key = element.dataset.i18n as MessageKey; // src/page.test.ts fails on one that is no message
     const slots = new Map<string | undefined, HTMLElement>();
     for (const child of element.querySelectorAll<HTMLElement>(":scope > [data-slot]"))
       slots.set(child.dataset.slot, child);

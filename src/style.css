@@ -630,8 +630,12 @@ a {
     padding-block: 0;
   }
 
-  /* in a language with longer words it is the tagline that gives way, not the buttons */
-  .actions {
+  /*
+   * In a language with longer words the buttons keep their row and their width. What gives
+   * way is the tagline, in the windows wide enough to show it (below); the name never does.
+   */
+  .actions,
+  .brand h1 {
     flex: none;
     flex-wrap: nowrap;
   }
@@ -761,6 +765,13 @@ a {
 @media (min-width: 1200px) {
   .brand p {
     display: block;
+  }
+}
+
+/* without the tagline there is nothing in the brand that could give way */
+@media (max-width: 1199px) {
+  .brand {
+    flex: none;
   }
 }
 

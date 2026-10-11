@@ -170,7 +170,8 @@ Bluetooth 対応の USB テスター（J7-C・ATorch UD18・AT24 など）の値
 
 使い方:
 
-1. Chrome か Edge（Windows・macOS・Linux・ChromeOS・Android）で
+1. Chrome か Edge（Windows・macOS・ChromeOS・Android。Linux の Chrome は、先に
+   `chrome://flags/#enable-experimental-web-platform-features` を有効にします）で
    [usbmeter.koeda.me](https://usbmeter.koeda.me) を開きます。
 2. メーターを充電器と測りたい機器の間に挿します。挿したままだったときは、一度抜いて挿し直します。
 3. すぐに「メーターに接続」を押して、一覧からメーターを選びます。J7-C は `UC96_BLE` という名前で出ます。

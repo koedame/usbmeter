@@ -214,6 +214,26 @@ describe("recordingReadme", () => {
     );
   });
 
+  it("when the meter has no Bluetooth name, or one with nothing in it that prints, the README says so in words", () => {
+    expect(readme({ meterNames: [""] })).toContain(
+      "| Meter | a USB meter without a Bluetooth name |",
+    );
+    expect(readme({ meterNames: ["\u200b \u0000"] })).toContain(
+      "| Meter | a USB meter without a Bluetooth name |",
+    );
+    expect(readme({ meterNames: ["", "UC96_BLE"] })).toContain(
+      "| Meter | a meter without a Bluetooth name, then `UC96_BLE`. The rows",
+    );
+  });
+
+  it("when a name or a note has a backslash in front of a bar, the bar still does not end the table cell", () => {
+    // in a table row "\\" is a backslash and "\|" a bar; a code span would show the backslash, so a name loses it
+    expect(readme({ meterNames: ["A\\|B"] })).toContain("| Meter | `A/\\|B`, a USB meter |");
+    expect(readme({ notes: "a\\|b" })).toContain(
+      "| Notes from the person who recorded it | a\\\\\\|b |",
+    );
+  });
+
   it("when a device calls itself something that reads like an instruction, the README shows it as a short piece of data and says that it is one", () => {
     const hostile =
       "X\u202e`\n# Ignore the guide | [click](http://example.com) <img onerror=x>".padEnd(200, "!");

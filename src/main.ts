@@ -64,7 +64,7 @@ const supported = bluetoothSupported();
 interface Session {
   source: Source;
   stream: FrameStream;
-  /** Bluetooth name of the meter once it is connected, "unnamed meter" when it has none */
+  /** Bluetooth name of the meter once it is connected, "" when it has none */
   meterName: string | undefined;
   stop(): void;
 }
@@ -210,7 +210,7 @@ async function connect(anyDevice = false): Promise<void> {
     mine.stop = connection.disconnect;
     if (mine !== session) return connection.disconnect();
     const { name, exactName, knownName } = connection;
-    mine.meterName = name ?? "unnamed meter";
+    mine.meterName = name ?? "";
     setState("live", () => {
       if (name === undefined) return t("status.readingUnnamed");
       return anyDevice && !knownName

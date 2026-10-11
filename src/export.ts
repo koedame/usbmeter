@@ -47,7 +47,7 @@ export interface RecordingDetails {
   kind: MeterKind;
   /** Whether the rows came from a meter or from the demo */
   source: "meter" | "demo";
-  /** Bluetooth names of the meters the rows came from, in the order they were connected */
+  /** Bluetooth names of the meters the rows came from, in the order they were connected; "" for a meter without one */
   meterNames: string[];
   /** The English name of one of the PURPOSES */
   purpose: string;
@@ -77,9 +77,9 @@ function utcOffset(minutes: number): string {
   return `UTC${sign}${hours}:${String(Math.abs(minutes) % 60).padStart(2, "0")}`;
 }
 
-/** Notes on one table row: no line breaks, and no "|" that would end the cell */
+/** Notes on one table row: no line breaks, and no "|" that would end the cell, also not behind a backslash */
 function cell(text: string): string {
-  return text.trim().replace(/\s+/g, " ").replaceAll("|", "\\|");
+  return text.trim().replace(/\s+/g, " ").replaceAll("\\", "\\\\").replaceAll("|", "\\|");
 }
 
 /** No meter needs a longer Bluetooth name; the J7-C's has 8 characters */
@@ -88,19 +88,27 @@ const NAME_LENGTH = 40;
 /**
  * A Bluetooth name in the README. The device chose it, and the README is what an assistant
  * reads first, so the name is kept from passing for anything else: what does not print is
- * dropped, it is cut short, and it stands in a code span.
+ * dropped, it is cut short, and it stands in a code span. A code span shows a backslash as it
+ * is and ends at a backtick, so the name gets neither. A meter without a name, or with nothing
+ * in it that prints, is called that in words.
  */
 function deviceName(name: string): string {
-  const printable = [...name.replace(/\p{C}/gu, "").replaceAll("`", "'")];
-  return `\`${cell(printable.slice(0, NAME_LENGTH).join(""))}\``;
+  const printable = [...name.replace(/\p{C}/gu, "").replaceAll("`", "'").replaceAll("\\", "/")]
+    .slice(0, NAME_LENGTH)
+    .join("")
+    .trim();
+  return printable === "" ? NAMELESS : `\`${cell(printable)}\``;
 }
+
+const NAMELESS = "a meter without a Bluetooth name";
 
 /** Which meter the rows came from. A recording goes on when another meter is connected, so there can be several. */
 function meter(details: RecordingDetails): string {
   const names = details.meterNames.map(deviceName);
   const kind = KIND_NAME[details.kind];
   if (names.length === 0) return kind;
-  if (names.length === 1) return `${names[0]}, ${kind}`;
+  if (names.length === 1)
+    return names[0] === NAMELESS ? `${kind} without a Bluetooth name` : `${names[0]}, ${kind}`;
   return `${names.join(", then ")}. The rows come from more than one meter, connected in that order; the last one is ${kind}.`;
 }
 
