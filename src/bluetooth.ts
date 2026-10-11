@@ -9,6 +9,19 @@ const SERVICES: BluetoothServiceUUID[] = [
   "6e400001-b5a3-f393-e0a9-e50e24dcca9e", // Nordic UART
 ];
 
+/**
+ * Narrows the browser's device list to meters. A device is listed when it matches any entry:
+ * it advertises the serial service, or its name starts like a known meter (for meters that
+ * leave the service out of their advertisement). A J7-C calls itself UC96_BLE; ATorch meters
+ * use the model name, as in UD18-BLE, AT24-BLE or DL24M_BLE.
+ */
+export const METER_FILTERS: BluetoothLEScanFilter[] = [
+  { services: [0xffe0] },
+  ...["UC96", "UD18", "UD24", "AT24", "AT3010", "DT24", "DT3010", "DL24"].map((namePrefix) => ({
+    namePrefix,
+  })),
+];
+
 export interface MeterConnection {
   name: string;
   /** Closes the link and removes every listener. Safe to call more than once. */
@@ -21,16 +34,20 @@ export function bluetoothSupported(): boolean {
 
 /**
  * Opens the browser's device picker and starts streaming. Rejects when the user cancels.
+ * The picker lists only meters (`METER_FILTERS`) unless `anyDevice` is set, which is the way
+ * in for a meter with a name this page does not know yet.
  * `onLost` runs when the meter drops the link by itself, not after `disconnect()`.
  */
 export async function connectMeter(
   onData: (chunk: Uint8Array) => void,
   onLost: () => void,
+  anyDevice = false,
 ): Promise<MeterConnection> {
-  const device = await navigator.bluetooth.requestDevice({
-    acceptAllDevices: true,
-    optionalServices: SERVICES,
-  });
+  const device = await navigator.bluetooth.requestDevice(
+    anyDevice
+      ? { acceptAllDevices: true, optionalServices: SERVICES }
+      : { filters: METER_FILTERS, optionalServices: SERVICES },
+  );
   let characteristic: BluetoothRemoteGATTCharacteristic | undefined;
 
   const handleValue = () => {

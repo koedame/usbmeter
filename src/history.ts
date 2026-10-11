@@ -8,8 +8,6 @@ export interface Sample {
   reading: Reading;
 }
 
-export type Metric = "power" | "voltage" | "current";
-
 /** The last `limit` samples of a connection. Older ones are dropped, so memory stays bounded. */
 export class History {
   private samples: Sample[] = [];

@@ -1,15 +1,8 @@
 import { bluetoothSupported, connectMeter } from "./bluetooth.ts";
-import { drawChart } from "./chart.ts";
+import { Dashboard } from "./dashboard.ts";
 import { startDemo } from "./demo.ts";
-import {
-  formatCapacity,
-  formatCurrent,
-  formatDuration,
-  formatEnergy,
-  formatPower,
-  formatVoltage,
-} from "./format.ts";
-import { History, type Metric } from "./history.ts";
+import { formatCapacity, formatDuration, formatEnergy } from "./format.ts";
+import { History } from "./history.ts";
 import { FrameStream, parseReport, type Reading } from "./protocol.ts";
 
 type State = "idle" | "connecting" | "live" | "demo" | "error";
@@ -35,17 +28,17 @@ const ui = {
   checksumNote: element("checksum-note"),
   unsupported: element("unsupported"),
   connect: element<HTMLButtonElement>("connect"),
+  connectAny: element<HTMLButtonElement>("connect-any"),
   demo: element<HTMLButtonElement>("demo"),
   disconnect: element<HTMLButtonElement>("disconnect"),
   csv: element<HTMLButtonElement>("csv"),
   clear: element<HTMLButtonElement>("clear"),
-  metric: element<HTMLSelectElement>("metric"),
-  range: element<HTMLSelectElement>("range"),
-  chart: element<HTMLCanvasElement>("chart"),
+  range: element("range"),
   energyUnit: element("energy-unit"),
 };
 
 const history = new History();
+const dashboard = new Dashboard(element("panels-row"), element("tooltip"));
 const supported = bluetoothSupported();
 
 /**
@@ -65,14 +58,16 @@ function setText(id: string, text: string): void {
   element(id).textContent = text;
 }
 
-function setState(state: State, message: string): void {
+/** `offerAnyDevice` adds the way out for a meter that the narrowed device list did not show */
+function setState(state: State, message: string, offerAnyDevice = false): void {
   ui.pill.dataset.state = state;
   ui.pill.textContent = PILL_TEXT[state];
   ui.status.textContent = message;
   const running = state === "live" || state === "demo";
-  const hadFocus = [ui.connect, ui.demo, ui.disconnect].includes(
+  const hadFocus = [ui.connect, ui.connectAny, ui.demo, ui.disconnect].includes(
     document.activeElement as HTMLButtonElement,
   );
+  ui.connectAny.hidden = !offerAnyDevice;
   ui.connect.hidden = running;
   ui.demo.hidden = running;
   ui.disconnect.hidden = !running;
@@ -91,28 +86,24 @@ function showKind(kind: Reading["kind"]): void {
 
 function render(reading: Reading): void {
   showKind(reading.kind);
-  setText("voltage", formatVoltage(reading));
-  setText("current", formatCurrent(reading));
-  setText("power", formatPower(reading));
+  dashboard.showReading(reading);
   const energy = formatEnergy(reading);
   setText("energy", energy.value);
   ui.energyUnit.textContent = energy.unit;
   setText("duration", formatDuration(reading.durationSec));
-  setText("temperature", String(reading.temperatureC));
   if (reading.capacityAh !== undefined) setText("capacity", formatCapacity(reading.capacityAh));
-  if (reading.dPlus !== undefined) setText("dplus", reading.dPlus.toFixed(2));
-  if (reading.dMinus !== undefined) setText("dminus", reading.dMinus.toFixed(2));
-  if (reading.frequencyHz !== undefined) setText("frequency", reading.frequencyHz.toFixed(1));
-  if (reading.powerFactor !== undefined) setText("pf", reading.powerFactor.toFixed(3));
   ui.checksumNote.hidden = reading.checksumOk;
 }
 
+/** The chosen time range in milliseconds, or undefined for everything recorded */
 function windowMs(): number | undefined {
-  return ui.range.value === "all" ? undefined : Number(ui.range.value);
+  const chosen = ui.range.querySelector<HTMLInputElement>("input:checked")?.value;
+  return chosen === undefined || chosen === "all" ? undefined : Number(chosen);
 }
 
 function redrawChart(): void {
-  drawChart(ui.chart, history.window(windowMs()), ui.metric.value as Metric);
+  const range = windowMs();
+  dashboard.showHistory(history.window(range), range);
 }
 
 function onChunk(mine: Session, chunk: Uint8Array): void {
@@ -132,16 +123,21 @@ function onChunk(mine: Session, chunk: Uint8Array): void {
 function begin(source: Source, stop: () => void = () => {}): Session {
   session?.stop();
   if (lastSource !== undefined && lastSource !== source) {
+    // nothing of the old source may stay on screen under the name of the new one
     history.clear();
     ui.csv.disabled = true;
     ui.clear.disabled = true;
+    dashboard.clearReadings();
+    for (const id of ["capacity", "energy", "duration"]) setText(id, "–");
+    redrawChart();
   }
   lastSource = source;
   session = { source, stream: new FrameStream(), stop };
   return session;
 }
 
-async function connect(): Promise<void> {
+/** `anyDevice` lists every Bluetooth device nearby instead of only the ones that look like a meter */
+async function connect(anyDevice = false): Promise<void> {
   const mine = begin("meter");
   setState("connecting", "Choose your meter in the browser's Bluetooth list…");
   try {
@@ -152,6 +148,7 @@ async function connect(): Promise<void> {
         session = undefined;
         setState("idle", "The meter disconnected. Choose Connect to reconnect.");
       },
+      anyDevice,
     );
     mine.stop = connection.disconnect;
     if (mine !== session) return connection.disconnect();
@@ -163,8 +160,9 @@ async function connect(): Promise<void> {
     setState(
       cancelled ? "idle" : "error",
       cancelled
-        ? "No meter chosen. Choose Connect to try again."
+        ? "No meter chosen."
         : `Could not connect: ${error instanceof Error ? error.message : String(error)}`,
+      cancelled, // the meter may simply not have been in the narrowed list
     );
   }
 }
@@ -189,6 +187,7 @@ function download(): void {
 }
 
 ui.connect.addEventListener("click", () => void connect());
+ui.connectAny.addEventListener("click", () => void connect(true));
 ui.demo.addEventListener("click", startDemoMode);
 ui.disconnect.addEventListener("click", () => {
   session?.stop();
@@ -202,13 +201,11 @@ ui.clear.addEventListener("click", () => {
   ui.clear.disabled = true;
   redrawChart();
 });
-ui.metric.addEventListener("change", redrawChart);
 ui.range.addEventListener("change", redrawChart);
-window.addEventListener("resize", redrawChart);
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawChart);
 
 if (!supported) {
   ui.unsupported.hidden = false;
   ui.connect.disabled = true;
 }
+showKind("usb"); // the layout to start with, until a meter says what it is
 redrawChart();

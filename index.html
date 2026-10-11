@@ -36,127 +36,124 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <header class="header">
+    <header class="topbar">
       <div class="brand">
         <h1>USB Meter Web</h1>
         <p>Live readings from your Bluetooth USB tester, in the browser</p>
       </div>
       <p class="pill" id="pill" data-state="idle">Not connected</p>
+      <div class="actions">
+        <button type="button" class="button button--primary" id="connect">Connect to meter</button>
+        <button type="button" class="button" id="demo">Try the demo</button>
+        <button type="button" class="button" id="disconnect" hidden>Disconnect</button>
+        <a class="button button--quiet" href="#about-title">Help</a>
+      </div>
     </header>
 
-    <main class="app">
-      <section class="panel" aria-labelledby="connect-title">
-        <h2 id="connect-title">Connect</h2>
-        <div class="actions">
-          <button type="button" class="button button--primary" id="connect">Connect to meter</button>
-          <button type="button" class="button" id="demo">Try the demo</button>
-          <button type="button" class="button" id="disconnect" hidden>Disconnect</button>
+    <main>
+      <div class="dash">
+        <div class="toolbar">
+          <div class="messages">
+            <p class="status" id="status" role="status">
+              Turn the meter on, then choose Connect and pick it from the list.
+            </p>
+            <button type="button" class="link" id="connect-any" hidden>
+              Meter not in the list? Show all Bluetooth devices
+            </button>
+            <p class="status" id="checksum-note" hidden>
+              This meter does not use the ATorch checksum, so readings are shown without checksum
+              verification.
+            </p>
+            <p class="notice" id="unsupported" hidden>
+              This browser cannot talk to Bluetooth devices. Use Chrome or Edge on a computer or an
+              Android phone. The demo works everywhere.
+            </p>
+          </div>
+          <div class="controls">
+            <fieldset class="segmented" id="range">
+              <legend>Time range</legend>
+              <label><input type="radio" name="range" value="60000" checked /><span>1 min</span></label>
+              <label><input type="radio" name="range" value="600000" /><span>10 min</span></label>
+              <label><input type="radio" name="range" value="3600000" /><span>1 h</span></label>
+              <label><input type="radio" name="range" value="all" /><span>All</span></label>
+            </fieldset>
+            <button type="button" class="button" id="csv" disabled>Download CSV</button>
+            <button type="button" class="button" id="clear" disabled>Clear</button>
+          </div>
         </div>
-        <p class="status" id="status" role="status">
-          Turn the meter on, then choose Connect and pick it from the list.
-        </p>
-        <p class="status" id="checksum-note" hidden>
-          This meter does not use the ATorch checksum, so readings are shown without checksum
-          verification.
-        </p>
-        <p class="notice" id="unsupported" hidden>
-          This browser cannot talk to Bluetooth devices. Use Chrome or Edge on a computer or an
-          Android phone. The demo works everywhere.
-        </p>
-      </section>
 
-      <section class="panel" aria-labelledby="live-title">
-        <h2 id="live-title">Live readings</h2>
-        <div class="primary-readings">
-          <div class="reading reading--big">
-            <span class="reading__label">Voltage</span>
-            <span class="reading__value"><span id="voltage">–</span><small>V</small></span>
+        <section class="panels" id="panels" aria-labelledby="panels-title">
+          <h2 class="visually-hidden" id="panels-title">Live readings and history</h2>
+          <!-- src/dashboard.ts adds one wide panel per row here (voltage, current, power) -->
+          <div class="panels__row" id="panels-row">
+            <section class="panel panel--totals" aria-labelledby="totals-title">
+              <h3 class="panel__title" id="totals-title">Totals</h3>
+              <dl class="totals">
+                <div data-for="usb">
+                  <dt>Capacity</dt>
+                  <dd><span class="totals__value" id="capacity">–</span> <span class="totals__unit">mAh</span></dd>
+                </div>
+                <div data-for="usb ac">
+                  <dt>Energy</dt>
+                  <dd><span class="totals__value" id="energy">–</span> <span class="totals__unit" id="energy-unit">Wh</span></dd>
+                </div>
+                <div>
+                  <dt>Elapsed</dt>
+                  <dd><span class="totals__value" id="duration">–</span></dd>
+                </div>
+              </dl>
+            </section>
+            <!-- ... and the small panels here (temperature, data lines, frequency, power factor) -->
           </div>
-          <div class="reading reading--big">
-            <span class="reading__label">Current</span>
-            <span class="reading__value"><span id="current">–</span><small>A</small></span>
-          </div>
-          <div class="reading reading--big">
-            <span class="reading__label">Power</span>
-            <span class="reading__value"><span id="power">–</span><small>W</small></span>
-          </div>
-        </div>
-        <div class="secondary-readings">
-          <div class="reading" data-for="usb">
-            <span class="reading__label">Capacity</span>
-            <span class="reading__value"><span id="capacity">–</span><small>mAh</small></span>
-          </div>
-          <div class="reading" data-for="usb ac">
-            <span class="reading__label">Energy</span>
-            <span class="reading__value"><span id="energy">–</span><small id="energy-unit">Wh</small></span>
-          </div>
-          <div class="reading">
-            <span class="reading__label">Time</span>
-            <span class="reading__value"><span id="duration">–</span></span>
-          </div>
-          <div class="reading">
-            <span class="reading__label">Temperature</span>
-            <span class="reading__value"><span id="temperature">–</span><small>°C</small></span>
-          </div>
-          <div class="reading" data-for="usb">
-            <span class="reading__label">D+</span>
-            <span class="reading__value"><span id="dplus">–</span><small>V</small></span>
-          </div>
-          <div class="reading" data-for="usb">
-            <span class="reading__label">D−</span>
-            <span class="reading__value"><span id="dminus">–</span><small>V</small></span>
-          </div>
-          <div class="reading" data-for="ac" hidden>
-            <span class="reading__label">Frequency</span>
-            <span class="reading__value"><span id="frequency">–</span><small>Hz</small></span>
-          </div>
-          <div class="reading" data-for="ac" hidden>
-            <span class="reading__label">Power factor</span>
-            <span class="reading__value"><span id="pf">–</span></span>
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <section class="panel" aria-labelledby="history-title">
-        <h2 id="history-title">History</h2>
-        <div class="controls">
-          <label class="select">
-            <span>Show</span>
-            <select id="metric">
-              <option value="power">Power</option>
-              <option value="voltage">Voltage</option>
-              <option value="current">Current</option>
-            </select>
-          </label>
-          <label class="select">
-            <span>Range</span>
-            <select id="range">
-              <option value="60000">Last minute</option>
-              <option value="600000">Last 10 minutes</option>
-              <option value="3600000">Last hour</option>
-              <option value="all">Everything</option>
-            </select>
-          </label>
-          <button type="button" class="button" id="csv" disabled>Download CSV</button>
-          <button type="button" class="button" id="clear" disabled>Clear</button>
-        </div>
-        <canvas class="chart" id="chart" role="img" aria-label="Chart of the recorded readings"></canvas>
-      </section>
+      <template id="panel-template">
+        <section class="panel">
+          <div class="panel__head">
+            <h3 class="panel__title"><span class="key"></span><span class="panel__name">Reading</span></h3>
+            <div class="panel__readouts"></div>
+            <dl class="panel__stats">
+              <div><dt>Min</dt><dd data-stat="min">–</dd></div>
+              <div><dt>Avg</dt><dd data-stat="mean">–</dd></div>
+              <div><dt>Max</dt><dd data-stat="max">–</dd></div>
+            </dl>
+          </div>
+          <div class="panel__plot"><canvas role="img"></canvas></div>
+        </section>
+      </template>
+      <template id="readout-template">
+        <p class="readout">
+          <span class="key"></span><span class="readout__label"></span>
+          <span class="readout__value">–</span><span class="readout__unit"></span>
+        </p>
+      </template>
+      <template id="tooltip-row-template">
+        <p class="tooltip__row">
+          <span class="key"></span><span class="tooltip__label"></span>
+          <span class="tooltip__value"></span><span class="tooltip__unit"></span>
+        </p>
+      </template>
 
       <section class="docs" aria-labelledby="about-title">
         <h2 id="about-title">About this viewer</h2>
         <p>
           Many cheap USB testers have Bluetooth, but their phone apps are slow to pair, full of
-          ads or no longer updated. This page reads the same Bluetooth stream directly and shows
-          it on a big screen, with a graph and a CSV download. There is nothing to install and
-          no account.
+          ads or no longer updated. This page reads the same Bluetooth stream directly and puts
+          every reading on one dashboard: voltage, current, power, temperature and the USB data
+          lines each get a graph, all on the same time axis. Move the pointer over any graph to
+          read every value at that moment, and download the whole recording as CSV. There is
+          nothing to install and no account.
         </p>
 
         <h3>How to use it</h3>
         <ol>
           <li>Plug the meter between a charger and the device you want to measure, and switch it on.</li>
           <li>Open this page in Chrome or Edge and choose <strong>Connect to meter</strong>.</li>
-          <li>Pick the meter in the list (names look like UD18-BLE or AT24-BLE). Readings start right away.</li>
+          <li>
+            Pick the meter in the list. A J7-C shows up as UC96_BLE, ATorch meters under their
+            model name, such as UD18-BLE or AT24-BLE. Readings start right away.
+          </li>
         </ol>
 
         <h3>Supported meters</h3>
@@ -172,7 +169,7 @@
           </tbody>
         </table>
         <p>
-          If your meter shows up in the Bluetooth list but no readings appear, please
+          If your meter connects but no readings appear, please
           <a href="https://github.com/koedame/usbmeter/issues">open an issue</a> with its name and model.
         </p>
 
@@ -194,7 +191,10 @@
           <dt>The meter does not appear in the list.</dt>
           <dd>
             Disconnect it from any phone app first. These meters accept one Bluetooth connection
-            at a time. On Windows and Linux, make sure Bluetooth is on.
+            at a time. On Windows and Linux, make sure Bluetooth is on. The list leaves out
+            devices that do not look like a supported meter. If yours goes by a name this page
+            does not know, cancel the list and choose
+            <strong>Meter not in the list? Show all Bluetooth devices</strong>.
           </dd>
           <dt>Why does it say the checksum is not verified?</dt>
           <dd>
@@ -206,6 +206,8 @@
         </dl>
       </section>
     </main>
+
+    <div class="tooltip" id="tooltip" aria-hidden="true" hidden></div>
 
     <footer class="footer">
       <p>

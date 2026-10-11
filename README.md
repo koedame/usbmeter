@@ -1,8 +1,9 @@
 # USB Meter Web
 
-Live readings from Bluetooth USB testers and power meters, in your browser. Voltage, current,
-power, capacity, energy, D+/D−, temperature and elapsed time on a big screen, with a graph and
-CSV export. Nothing to install, no account.
+Live readings from Bluetooth USB testers and power meters, in your browser. A full-screen
+dashboard plots voltage, current, power, temperature and the USB data lines (D+/D−) side by
+side on one time axis, next to capacity, energy and elapsed time. Point at any graph to read
+every value at that moment; download the recording as CSV. Nothing to install, no account.
 
 Works with the **ATorch UD18**, **AT24** and the **J7-C**, and with other meters that stream the
 same "FF 55" frames over Bluetooth LE.
@@ -13,7 +14,13 @@ same "FF 55" frames over Bluetooth LE.
 
 1. Switch the meter on and disconnect it from any phone app (these meters accept one connection at a time).
 2. Open the page in **Chrome or Edge** (Windows, macOS, Linux, ChromeOS, Android) and choose **Connect to meter**.
-3. Pick the meter in the browser's Bluetooth list.
+3. Pick the meter in the browser's Bluetooth list. A J7-C shows up as `UC96_BLE`, ATorch meters
+   under their model name (`UD18-BLE`, `AT24-BLE`, ...).
+
+The list is narrowed to devices that look like a supported meter: those that advertise the serial
+service `0xFFE0`, and those whose name starts like a known model (`src/bluetooth.ts`). If yours
+is missing, cancel the list and choose **Meter not in the list? Show all Bluetooth devices**,
+and please open an issue with the name it goes by.
 
 Web Bluetooth is not available in Firefox or Safari, nor in browsers on iPhone and iPad (except apps
 that add it, such as Bluefy). **Try the demo** shows made-up readings without a meter.
@@ -50,9 +57,13 @@ pnpm build && pnpm screenshot           # drives the build in a real browser, wr
 pnpm run deploy   # build and publish to Cloudflare (`pnpm deploy` is a different pnpm command)
 ```
 
-`pnpm screenshot` serves the build with the production headers, runs the demo and a **fake
-Bluetooth meter** that replays real J7-C frames in 20-byte notifications, checks the numbers on
-screen and the CSV, and fails on any console error or CSP violation. It is the closest thing to a
+`pnpm screenshot` serves the build with the production headers and drives it in a real browser,
+on a desktop, a laptop and a phone-sized window, in both colour schemes. It runs the demo and a
+**fake Bluetooth meter** that replays real J7-C frames (and AC and DC sample packets) in 20-byte
+notifications, then checks the numbers on screen, the CSV, the cursor tooltip, that every plot
+is painted and that the dashboard fits the window. Last, it gives Chromium an emulated Bluetooth
+adapter with meters and unrelated gadgets around it and reads which of them the real device
+picker lists. Any console error or CSP violation fails the run. It is the closest thing to a
 hardware test that does not need a meter.
 
 The site address (canonical URL, social preview, `robots.txt`, `sitemap.xml`) comes from
@@ -60,12 +71,14 @@ The site address (canonical URL, social preview, `robots.txt`, `sitemap.xml`) co
 log in with `wrangler login` or pass `CLOUDFLARE_API_TOKEN`.
 
 ```
-index.html                 page (connect, live readings, history, about)
+index.html                 page (top bar, dashboard, about)
 src/protocol.ts            frame format: parse, checksum, stream reassembly, encoder
-src/bluetooth.ts           Web Bluetooth: pick a meter and subscribe to notifications
+src/bluetooth.ts           Web Bluetooth: narrow the device list, pick a meter, subscribe to notifications
 src/demo.ts                pretend meter for the demo button
 src/history.ts             recorded samples and CSV
-src/chart.ts               canvas line chart
+src/metrics.ts             the measured quantities and the panels they are grouped into
+src/chart.ts               one canvas plot: axis scaling, thinning of long recordings, drawing
+src/dashboard.ts           the panels, their readouts and ranges, the shared cursor and tooltip
 src/main.ts                wires the page together
 ```
 
@@ -82,7 +95,8 @@ read as mAh (value ÷ 1000 Ah); the UD18 sample packets are consistent with that
 ## 日本語
 
 Bluetooth 対応の USB テスター（ATorch UD18・AT24・J7-C など）の電圧・電流・電力・容量を、
-ブラウザ（Chrome / Edge）で大きく表示します。グラフと CSV 保存つき。アプリの導入は要りません。
+ブラウザ（Chrome / Edge）のダッシュボードに表示します。電圧・電流・電力・温度・D+/D− のグラフが
+同じ時間軸に並び、CSV で保存できます。アプリの導入は要りません。
 値はブラウザの中だけで扱い、どこにも送りません。iPhone の Safari は Web Bluetooth に対応していません。
 
 ## License
