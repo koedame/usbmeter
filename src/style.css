@@ -582,14 +582,25 @@ a {
     min-height: 36px;
   }
 
+  /*
+   * The window is the least the dashboard takes, not the most. A row never gets smaller than
+   * its text needs, so in a small window or under a long notice the dashboard grows past the
+   * bottom edge and the page scrolls, instead of a panel cutting off its numbers.
+   */
   .dash {
-    height: calc(100dvh - 56px);
+    min-height: calc(100dvh - 56px);
   }
 
   .panels {
+    --reading-size: clamp(2rem, min(3.4vw, 7vh), 3.5rem);
+    /* title, reading and range beside a trace */
+    --row: calc(var(--reading-size) + 4.75rem);
+    /* title and two lines of totals */
+    --last-row: 8.25rem;
     display: grid;
-    flex: 1;
-    grid-template-rows: repeat(3, minmax(0, 1fr)) minmax(0, 0.95fr);
+    /* the least it takes is the four rows at their smallest and the three gaps between them */
+    flex: 1 0 calc(3 * var(--row) + var(--last-row) + 24px);
+    grid-template-rows: repeat(3, minmax(var(--row), 1fr)) minmax(var(--last-row), 0.95fr);
   }
 
   .panels__row {
@@ -609,7 +620,7 @@ a {
 
   .panel--wide .panel__head {
     display: flex;
-    flex: 0 0 clamp(200px, 18vw, 280px);
+    flex: 0 0 clamp(232px, 18vw, 280px);
     flex-direction: column;
     justify-content: center;
     gap: 8px;
@@ -621,7 +632,7 @@ a {
   }
 
   .panel--wide .readout__value {
-    font-size: clamp(2rem, min(3.4vw, 7vh), 3.5rem);
+    font-size: var(--reading-size);
   }
 
   .panel--wide .panel__stats div {
@@ -656,8 +667,19 @@ a {
     order: 1; /* after the range, at the right edge */
   }
 
+  /* beside the totals in the smallest window: tighter, so D+ and D− stay on one line and leave their plot its height */
+  @container (max-width: 339px) {
+    .panel--small .panel__head {
+      padding-inline: 10px;
+    }
+
+    .panel--small .panel__readouts {
+      column-gap: 8px;
+    }
+  }
+
   .panel--totals {
-    flex: 0 0 clamp(200px, 18vw, 280px);
+    flex: 0 0 clamp(232px, 18vw, 280px);
     justify-content: center;
     padding: 12px 16px;
   }

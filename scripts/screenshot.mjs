@@ -38,6 +38,8 @@ const TYPES = {
 const PC = { width: 1440, height: 900 };
 const LAPTOP = { width: 1280, height: 720 };
 const MOBILE = { width: 390, height: 844 };
+// the smallest window that gets the layout that fills it (src/style.css)
+const SMALL = { width: 900, height: 640 };
 
 // Frames recorded from a J7-C (see src/protocol.test.ts). The screen showed 4.73 V for these.
 const J7C_FRAMES = [
@@ -100,6 +102,10 @@ async function rootHeaders() {
 
 const SCREENS = [
   { name: "pc-dark-demo", viewport: PC, colorScheme: "dark", source: "demo" },
+  // the smallest window with the layout that fills it: nothing may be cut off, whether the
+  // dashboard still fits (a meter) or has to grow under the notice for browsers without Bluetooth
+  { name: "small-light-j7c", viewport: SMALL, colorScheme: "light", source: "fake-ble" },
+  { name: "small-dark-demo", viewport: SMALL, colorScheme: "dark", source: "demo" },
   { name: "laptop-light-j7c", viewport: LAPTOP, colorScheme: "light", source: "fake-ble" },
   { name: "mobile-dark-j7c", viewport: MOBILE, colorScheme: "dark", source: "fake-ble" },
   { name: "mobile-light-demo", viewport: MOBILE, colorScheme: "light", source: "demo" },
@@ -267,10 +273,24 @@ function inspectDashboard(plotCount) {
     }
     if (coloured < 100) problems.push(`"${label}" has no trace (${coloured} coloured pixels)`);
   }
-  // wide and tall enough: the dashboard ends exactly at the bottom of the window
+  // a panel that is too small for its text hides the overflow, so look for text that sticks out
+  for (const panel of document.querySelectorAll(".panel:not([hidden])")) {
+    const box = panel.getBoundingClientRect();
+    for (const node of panel.querySelectorAll("h3, dt, dd, .readout")) {
+      const text = node.getBoundingClientRect();
+      if (text.height > 0 && (text.top < box.top - 0.5 || text.bottom > box.bottom + 0.5))
+        problems.push(
+          `the ${panel.querySelector("h3")?.textContent.trim()} panel cuts off "${node.textContent.trim()}"`,
+        );
+    }
+  }
+  // Wide and tall enough: the dashboard takes the window. From a laptop screen up it ends
+  // exactly at the bottom; in a smaller window its rows may be at their smallest already, and
+  // then it goes on below the window instead.
   if (window.innerWidth >= 900 && window.innerHeight >= 640) {
     const bottom = document.querySelector(".dash").getBoundingClientRect().bottom;
-    if (Math.abs(bottom - window.innerHeight) > 1)
+    const fits = window.innerWidth >= 1280 && window.innerHeight >= 720;
+    if (bottom < window.innerHeight - 1 || (fits && bottom > window.innerHeight + 1))
       problems.push(`the dashboard ends at ${bottom}px in a ${window.innerHeight}px tall window`);
   }
   return problems;
