@@ -16,6 +16,11 @@ const PILL_TEXT: Record<State, string> = {
   error: "Not connected",
 };
 
+// The browser's list shows only the devices it hears while the list is open, and it says
+// nothing when that leaves the list empty. So the page says what a meter needs to be in it.
+const LISTED_WHEN =
+  "A meter is listed only while it has power, its Bluetooth is on and nothing else, such as a phone app or another tab, is connected to it.";
+
 function element<T extends HTMLElement>(id: string): T {
   const found = document.getElementById(id);
   if (!found) throw new Error(`#${id} is missing from index.html`);
@@ -150,19 +155,31 @@ async function connect(anyDevice = false): Promise<void> {
       },
       anyDevice,
     );
+    if (!connection) {
+      if (mine !== session) return;
+      session = undefined;
+      setState(
+        "idle",
+        anyDevice
+          ? `No meter chosen. ${LISTED_WHEN}`
+          : `No meter chosen. ${LISTED_WHEN} If yours is ready and still missing, choose Show all Bluetooth devices.`,
+        true, // the meter may simply not have been in the narrowed list
+      );
+      return;
+    }
     mine.stop = connection.disconnect;
     if (mine !== session) return connection.disconnect();
-    setState("live", `Reading from ${connection.name}.`);
+    let status = `Reading from ${connection.name ?? "a meter without a Bluetooth name"}.`;
+    if (anyDevice && connection.name !== undefined && !connection.knownName)
+      status +=
+        " This page does not know that name yet; report it through Help so it can be added.";
+    setState("live", status);
   } catch (error) {
     if (mine !== session) return;
     session = undefined;
-    const cancelled = error instanceof DOMException && error.name === "NotFoundError";
     setState(
-      cancelled ? "idle" : "error",
-      cancelled
-        ? "No meter chosen."
-        : `Could not connect: ${error instanceof Error ? error.message : String(error)}`,
-      cancelled, // the meter may simply not have been in the narrowed list
+      "error",
+      `Could not connect: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }

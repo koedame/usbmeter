@@ -18,9 +18,11 @@ same "FF 55" frames over Bluetooth LE.
    under their model name (`UD18-BLE`, `AT24-BLE`, ...).
 
 The list is narrowed to devices that look like a supported meter: those that advertise the serial
-service `0xFFE0`, and those whose name starts like a known model (`src/bluetooth.ts`). If yours
-is missing, cancel the list and choose **Meter not in the list? Show all Bluetooth devices**,
-and please open an issue with the name it goes by.
+service `0xFFE0`, and those whose name starts like a known model (`src/bluetooth.ts`). A meter
+is listed only while the browser can hear it: it needs power, its Bluetooth switched on and no
+other connection (a phone app, another tab). If yours is ready and still missing, cancel the list
+and choose **Show all Bluetooth devices**. When the page does not know the name of a meter
+connected that way, the status line says so; please open an issue with that name.
 
 Web Bluetooth is not available in Firefox or Safari, nor in browsers on iPhone and iPad (except apps
 that add it, such as Bluefy). **Try the demo** shows made-up readings without a meter.

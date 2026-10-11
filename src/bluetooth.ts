@@ -9,21 +9,35 @@ const SERVICES: BluetoothServiceUUID[] = [
   "6e400001-b5a3-f393-e0a9-e50e24dcca9e", // Nordic UART
 ];
 
+/** How the Bluetooth name of a known meter starts. A J7-C calls itself UC96_BLE; ATorch meters use the model name, as in UD18-BLE, AT24-BLE or DL24M_BLE. */
+const METER_NAME_PREFIXES = ["UC96", "UD18", "UD24", "AT24", "AT3010", "DT24", "DT3010", "DL24"];
+
 /**
  * Narrows the browser's device list to meters. A device is listed when it matches any entry:
  * it advertises the serial service, or its name starts like a known meter (for meters that
- * leave the service out of their advertisement). A J7-C calls itself UC96_BLE; ATorch meters
- * use the model name, as in UD18-BLE, AT24-BLE or DL24M_BLE.
+ * leave the service out of their advertisement). The browser lists only what it hears while
+ * the list is open, so a meter that is off or connected elsewhere is missing whatever its name.
  */
 export const METER_FILTERS: BluetoothLEScanFilter[] = [
   { services: [0xffe0] },
-  ...["UC96", "UD18", "UD24", "AT24", "AT3010", "DT24", "DT3010", "DL24"].map((namePrefix) => ({
-    namePrefix,
-  })),
+  ...METER_NAME_PREFIXES.map((namePrefix) => ({ namePrefix })),
 ];
 
+/** Whether the name starts like a meter this page knows, the way the narrowed list matches names */
+export function knownMeterName(name: string | undefined): boolean {
+  return name !== undefined && METER_NAME_PREFIXES.some((prefix) => name.startsWith(prefix));
+}
+
+/** A device name fit to show. A J7-C pads its name with NUL characters, which some fonts draw as boxes. */
+export function shownName(name: string | undefined): string | undefined {
+  return name?.replaceAll("\0", "") || undefined;
+}
+
 export interface MeterConnection {
-  name: string;
+  /** The meter's Bluetooth name, when it has one */
+  name: string | undefined;
+  /** Whether the name starts like a meter this page knows */
+  knownName: boolean;
   /** Closes the link and removes every listener. Safe to call more than once. */
   disconnect(): void;
 }
@@ -33,7 +47,8 @@ export function bluetoothSupported(): boolean {
 }
 
 /**
- * Opens the browser's device picker and starts streaming. Rejects when the user cancels.
+ * Opens the browser's device picker and starts streaming. Resolves to undefined when the user
+ * closes the picker without choosing a device.
  * The picker lists only meters (`METER_FILTERS`) unless `anyDevice` is set, which is the way
  * in for a meter with a name this page does not know yet.
  * `onLost` runs when the meter drops the link by itself, not after `disconnect()`.
@@ -42,12 +57,18 @@ export async function connectMeter(
   onData: (chunk: Uint8Array) => void,
   onLost: () => void,
   anyDevice = false,
-): Promise<MeterConnection> {
-  const device = await navigator.bluetooth.requestDevice(
-    anyDevice
-      ? { acceptAllDevices: true, optionalServices: SERVICES }
-      : { filters: METER_FILTERS, optionalServices: SERVICES },
-  );
+): Promise<MeterConnection | undefined> {
+  let device: BluetoothDevice;
+  try {
+    device = await navigator.bluetooth.requestDevice(
+      anyDevice
+        ? { acceptAllDevices: true, optionalServices: SERVICES }
+        : { filters: METER_FILTERS, optionalServices: SERVICES },
+    );
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "NotFoundError") return undefined;
+    throw error;
+  }
   let characteristic: BluetoothRemoteGATTCharacteristic | undefined;
 
   const handleValue = () => {
@@ -75,21 +96,26 @@ export async function connectMeter(
     close(); // the meter accepts one connection at a time, so do not hold it after a failure
     throw error;
   }
-  return { name: device.name ?? "Unnamed meter", disconnect: close };
+  return {
+    name: shownName(device.name),
+    knownName: knownMeterName(device.name),
+    disconnect: close,
+  };
 }
 
 async function findNotifyCharacteristic(
   server: BluetoothRemoteGATTServer,
 ): Promise<BluetoothRemoteGATTCharacteristic> {
   for (const uuid of SERVICES) {
-    let service: BluetoothRemoteGATTService;
+    let characteristics: BluetoothRemoteGATTCharacteristic[];
     try {
-      service = await server.getPrimaryService(uuid);
+      const service = await server.getPrimaryService(uuid);
+      characteristics = await service.getCharacteristics();
     } catch (error) {
-      if (error instanceof DOMException && error.name === "NotFoundError") continue; // not this service
+      // not this service, or a service without characteristics
+      if (error instanceof DOMException && error.name === "NotFoundError") continue;
       throw error;
     }
-    const characteristics = await service.getCharacteristics();
     const notifying = characteristics.filter((c) => c.properties.notify);
     const preferred = notifying.find((c) => c.uuid.startsWith("0000ffe1"));
     const found = preferred ?? notifying[0];

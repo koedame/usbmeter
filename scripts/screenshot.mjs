@@ -51,6 +51,13 @@ const J7C_FRAMES = [
 const AC_FRAME = "FF55010100090400000E0000040000000000006401F40085002F00000A093C0000000039";
 const DC_FRAME = "FF55010200011A00003C0004D40000002000006400000000002600590D363C00000000F0";
 
+// A J7-C pads its advertised name with NUL characters (tools that scan for it strip them)
+const J7C_NAME = "UC96_BLE\u0000\u0000\u0000";
+
+/** What the status line says about a meter that is missing from the picker (src/main.ts) */
+const LISTED_WHEN =
+  "A meter is listed only while it has power, its Bluetooth is on and nothing else";
+
 /** What the fake J7-C must show once its first frame has arrived: readout or element id, and its text */
 const J7C_EXPECTED = {
   voltage: "4.73",
@@ -67,6 +74,7 @@ const J7C_EXPECTED = {
  */
 const ROOM = [
   { name: "UC96_BLE", services: [], meter: true }, // a J7-C: known by name only
+  { name: J7C_NAME, services: [], meter: true },
   { name: "UD18-BLE", services: [0xffe0], meter: true },
   { name: "AT24-BLE", services: [], meter: true },
   { name: "BT05", services: [0xffe0], meter: true }, // an unknown meter on the same serial service
@@ -285,7 +293,7 @@ for (const screen of SCREENS) {
       console.error(`CSP violation: ${event.violatedDirective} ${event.blockedURI}`);
     });
   });
-  const meterName = screen.meterName ?? "UC96_BLE";
+  const meterName = screen.meterName ?? J7C_NAME;
   const quantities = screen.quantities ?? USB_QUANTITIES;
   if (screen.source === "fake-ble")
     await page.addInitScript(installFakeBluetooth, {
@@ -315,9 +323,19 @@ for (const screen of SCREENS) {
       await everything.waitFor();
       const narrowed = await page.evaluate(() => window.pickerListed);
       if (narrowed.length > 0) fail(`the narrowed picker listed ${JSON.stringify(narrowed)}`);
+      // the browser says nothing about an empty list, so the page has to
+      const hint = await page.locator("#status").textContent();
+      if (!hint.includes(LISTED_WHEN) || !hint.includes("choose Show all Bluetooth devices"))
+        fail(`after an empty list the status does not say what to do: ${hint.trim()}`);
+      await page.screenshot({ path: join(OUT, `${screen.name}-cancelled.png`) });
       await everything.click();
     }
     await page.getByRole("button", { name: "Disconnect" }).waitFor();
+    const reading = (await page.locator("#status").textContent()).trim();
+    const wanted = screen.unlisted
+      ? `Reading from ${meterName}. This page does not know that name yet; report it through Help so it can be added.`
+      : `Reading from ${meterName.replaceAll("\u0000", "")}.`;
+    if (reading !== wanted) fail(`the status reads "${reading}", expected "${wanted}"`);
     const listed = await page.evaluate(() => window.pickerListed);
     if (!screen.unlisted && JSON.stringify(listed) !== JSON.stringify([meterName]))
       fail(`the picker listed ${JSON.stringify(listed)}, expected only the meter`);
@@ -417,9 +435,10 @@ await browser.close();
     ROOM.filter(wanted)
       .map((device) => device.name)
       .sort();
-  for (const [button, expected] of [
-    [/Connect to meter/, names((device) => device.meter)],
-    [/Show all Bluetooth devices/, names(() => true)],
+  // closing the narrowed list must point to the full one; closing the full one has nowhere to point
+  for (const [button, expected, pointsToFullList] of [
+    [/Connect to meter/, names((device) => device.meter), true],
+    [/Show all Bluetooth devices/, names(() => true), false],
   ]) {
     shown = undefined;
     await page.getByRole("button", { name: button }).click();
@@ -432,6 +451,12 @@ await browser.close();
     console.log(`picker ${button}  lists ${listed.join(", ") || "nothing"}`);
     if (shown) await picker.send("DeviceAccess.cancelPrompt", { id: shown.id });
     await page.getByRole("button", { name: /Show all Bluetooth devices/ }).waitFor();
+    const closed = await page.locator("#status").textContent();
+    if (
+      !closed.includes(LISTED_WHEN) ||
+      closed.includes("choose Show all Bluetooth devices") !== pointsToFullList
+    )
+      problems.push(`picker for ${button}: after closing it the status reads "${closed.trim()}"`);
   }
   await full.close();
 }

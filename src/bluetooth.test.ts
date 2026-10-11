@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { METER_FILTERS } from "./bluetooth.ts";
+import { knownMeterName, METER_FILTERS, shownName } from "./bluetooth.ts";
 
 /** Whether the browser would list a device with this advertised name and these advertised services */
 function listed(name: string, services: number[] = []): boolean {
@@ -34,5 +34,34 @@ describe("METER_FILTERS", () => {
       mouse: listed("MX Ergo", [0x1812, 0x180f]),
       nameless: listed(""),
     }).toEqual({ keyboard: false, earbuds: false, mouse: false, nameless: false });
+  });
+});
+
+describe("knownMeterName", () => {
+  it("when the name starts like a known meter, also with the NUL padding of a J7-C, it is known", () => {
+    expect(["UC96_BLE", "UC96_BLE\0\0\0", "DL24M_BLE"].map(knownMeterName)).toEqual([
+      true,
+      true,
+      true,
+    ]);
+  });
+
+  it("when the name starts differently, or the device has no name, it is not known", () => {
+    expect(["BT05", "uc96_ble", " UC96_BLE", undefined].map(knownMeterName)).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
+  });
+});
+
+describe("shownName", () => {
+  it("when a J7-C pads its name with NUL characters, the padding is not shown", () => {
+    expect(shownName("UC96_BLE\0\0\0")).toBe("UC96_BLE");
+  });
+
+  it("when a device has no name, or nothing but padding, there is no name to show", () => {
+    expect([undefined, "", "\0\0"].map(shownName)).toEqual([undefined, undefined, undefined]);
   });
 });
