@@ -231,6 +231,44 @@ a {
   cursor: pointer;
 }
 
+/* The language list: a globe, so that it can be found from a language one cannot read */
+.language {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-2);
+}
+
+.language svg {
+  position: absolute;
+  left: 10px;
+  pointer-events: none;
+}
+
+.language select {
+  /* as wide as the language it shows, not as the longest name in its list */
+  field-sizing: content;
+  min-height: 40px;
+  padding: 6px 8px 6px 32px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.language select:hover {
+  border-color: var(--text-2);
+}
+
+/* the list itself opens on the page's colours, not on the transparent button */
+.language option {
+  background: var(--panel);
+  color: var(--text);
+}
+
 /* Dashboard: messages and the controls that scope every plot, then the panels */
 
 .dash {
@@ -257,10 +295,24 @@ a {
   min-width: 0;
 }
 
+/*
+ * The line about a meter that is missing from the list is a long one. While it shows, the
+ * messages get a width they can be read at, or the row to themselves and the controls the next.
+ */
+.messages:has(#any-device:not([hidden])) {
+  flex-basis: 440px;
+}
+
 .status {
   margin: 0;
   color: var(--text-2);
   font-size: 0.875rem;
+}
+
+/* the one thing to do about a meter that is missing from the list */
+.status strong {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .notice {
@@ -578,7 +630,14 @@ a {
     padding-block: 0;
   }
 
-  .button {
+  /* in a language with longer words it is the tagline that gives way, not the buttons */
+  .actions {
+    flex: none;
+    flex-wrap: nowrap;
+  }
+
+  .button,
+  .language select {
     min-height: 36px;
   }
 
@@ -746,7 +805,8 @@ a {
   width: 100%;
   margin-bottom: 16px;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  /* a field is found by its edge alone, so the edge is darker than a button's */
+  border: 1px solid var(--muted);
   border-radius: 6px;
   background: var(--plot);
   color: var(--text);
@@ -833,6 +893,11 @@ a {
   color: var(--text-2);
 }
 
+/* an answer in several steps */
+.docs dd + dd {
+  margin-top: 6px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -847,8 +912,12 @@ td {
   vertical-align: top;
 }
 
+.footer p {
+  margin: 0 0 8px;
+}
+
 .footer {
   padding: 24px 0 40px;
-  color: var(--muted);
+  color: var(--text-2);
   font-size: 0.875rem;
 }

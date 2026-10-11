@@ -1,5 +1,6 @@
 // What the dashboard plots: the measured quantities and the panels they are grouped into.
 
+import { t } from "./i18n.ts";
 import type { MeterKind, Reading } from "./protocol.ts";
 
 export type MetricId =
@@ -14,7 +15,8 @@ export type MetricId =
 
 export interface Metric {
   id: MetricId;
-  label: string;
+  /** its name in the page's language */
+  label(): string;
   /** empty for a ratio */
   unit: string;
   /** undefined when this kind of meter does not report it */
@@ -30,7 +32,7 @@ export interface Metric {
 export const METRICS: Record<MetricId, Metric> = {
   voltage: {
     id: "voltage",
-    label: "Voltage",
+    label: () => t("metric.voltage"),
     unit: "V",
     value: (r) => r.voltage,
     digits: (kind) => (kind === "usb" ? 2 : 1),
@@ -39,7 +41,7 @@ export const METRICS: Record<MetricId, Metric> = {
   },
   current: {
     id: "current",
-    label: "Current",
+    label: () => t("metric.current"),
     unit: "A",
     value: (r) => r.current,
     digits: (kind) => (kind === "usb" ? 2 : 3),
@@ -48,7 +50,7 @@ export const METRICS: Record<MetricId, Metric> = {
   },
   power: {
     id: "power",
-    label: "Power",
+    label: () => t("metric.power"),
     unit: "W",
     value: (r) => r.power,
     digits: (kind) => (kind === "ac" ? 1 : 2),
@@ -57,7 +59,7 @@ export const METRICS: Record<MetricId, Metric> = {
   },
   temperature: {
     id: "temperature",
-    label: "Temperature",
+    label: () => t("metric.temperature"),
     unit: "°C",
     value: (r) => r.temperatureC,
     digits: () => 0,
@@ -66,7 +68,7 @@ export const METRICS: Record<MetricId, Metric> = {
   },
   dplus: {
     id: "dplus",
-    label: "D+",
+    label: () => "D+",
     unit: "V",
     value: (r) => r.dPlus,
     digits: () => 2,
@@ -75,7 +77,7 @@ export const METRICS: Record<MetricId, Metric> = {
   },
   dminus: {
     id: "dminus",
-    label: "D−",
+    label: () => "D−",
     unit: "V",
     value: (r) => r.dMinus,
     digits: () => 2,
@@ -84,7 +86,7 @@ export const METRICS: Record<MetricId, Metric> = {
   },
   frequency: {
     id: "frequency",
-    label: "Frequency",
+    label: () => t("metric.frequency"),
     unit: "Hz",
     value: (r) => r.frequencyHz,
     digits: () => 1,
@@ -93,7 +95,7 @@ export const METRICS: Record<MetricId, Metric> = {
   },
   pf: {
     id: "pf",
-    label: "Power factor",
+    label: () => t("metric.pf"),
     unit: "",
     value: (r) => r.powerFactor,
     digits: () => 3,
@@ -104,7 +106,8 @@ export const METRICS: Record<MetricId, Metric> = {
 
 export interface PanelDef {
   id: string;
-  title: string;
+  /** its heading in the page's language */
+  title(): string;
   /** "wide" panels take a full row with the reading beside the plot; "small" ones share the last row */
   size: "wide" | "small";
   /** plotted together on one y-axis, so they must share a unit */
@@ -116,23 +119,41 @@ export interface PanelDef {
 const EVERY_KIND: MeterKind[] = ["usb", "dc", "ac"];
 
 export const PANELS: PanelDef[] = [
-  { id: "voltage", title: "Voltage", size: "wide", metrics: ["voltage"], kinds: EVERY_KIND },
-  { id: "current", title: "Current", size: "wide", metrics: ["current"], kinds: EVERY_KIND },
-  { id: "power", title: "Power", size: "wide", metrics: ["power"], kinds: EVERY_KIND },
+  {
+    id: "voltage",
+    title: METRICS.voltage.label,
+    size: "wide",
+    metrics: ["voltage"],
+    kinds: EVERY_KIND,
+  },
+  {
+    id: "current",
+    title: METRICS.current.label,
+    size: "wide",
+    metrics: ["current"],
+    kinds: EVERY_KIND,
+  },
+  { id: "power", title: METRICS.power.label, size: "wide", metrics: ["power"], kinds: EVERY_KIND },
   {
     id: "temperature",
-    title: "Temperature",
+    title: METRICS.temperature.label,
     size: "small",
     metrics: ["temperature"],
     kinds: EVERY_KIND,
   },
   {
     id: "data-lines",
-    title: "Data lines",
+    title: () => t("panel.dataLines"),
     size: "small",
     metrics: ["dplus", "dminus"],
     kinds: ["usb"],
   },
-  { id: "frequency", title: "Frequency", size: "small", metrics: ["frequency"], kinds: ["ac"] },
-  { id: "power-factor", title: "Power factor", size: "small", metrics: ["pf"], kinds: ["ac"] },
+  {
+    id: "frequency",
+    title: METRICS.frequency.label,
+    size: "small",
+    metrics: ["frequency"],
+    kinds: ["ac"],
+  },
+  { id: "power-factor", title: METRICS.pf.label, size: "small", metrics: ["pf"], kinds: ["ac"] },
 ];

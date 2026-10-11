@@ -7,9 +7,12 @@ Issues and pull requests are welcome. The most useful reports are:
 - **A meter that connects but shows nothing or wrong values.** Its name and model, and if you
   can, a few frames captured from it (hex) with what its screen showed at that moment.
 
+By contributing you agree that your contribution is licensed under the
+[MIT License](LICENSE) of this repository.
+
 ## Run it locally
 
-You need Node 22 or later and pnpm.
+You need Node 22.18 or later and pnpm.
 
 ```
 pnpm install
@@ -32,7 +35,10 @@ on a desktop, a laptop and a phone-sized window, in both colour schemes. It runs
 notifications, then checks the numbers on screen, the status line, the CSV, the cursor tooltip,
 that every plot is painted and that the dashboard fits the window. It runs **Export for AI** on
 every screen, unpacks the ZIP the browser downloaded and checks the README and the CSV in it,
-and does the same for the Claude skill. Last, it gives Chromium an
+and does the same for the Claude skill. It opens every translation in a browser set to that
+language, on the smallest dashboard window and on a phone, and checks that each text on the page
+is the translated one, that nothing sticks out or is cut off, and that the page changes its
+language without losing the recording. Last, it gives Chromium an
 emulated Bluetooth adapter with meters and unrelated gadgets around it and reads which of them
 the real device picker lists. Any console error or CSP violation fails the run. It is the
 closest thing to a hardware test that does not need a meter, so look at the pictures after a
@@ -44,7 +50,9 @@ Layout and rendering are checked there; logic is covered by unit tests next to t
 ## Where things are
 
 ```
-index.html                 page (top bar, dashboard, about)
+index.html                 page (top bar, dashboard, about), with its English text
+src/locales/               every text of the page, one file per language; en.ts is the source
+src/i18n.ts                picks the language and puts its text into the page
 src/protocol.ts            frame format: parse, checksum, stream reassembly, encoder
 src/bluetooth.ts           Web Bluetooth: narrow the device list, pick a meter, subscribe to notifications
 src/demo.ts                pretend meter for the demo button
@@ -63,9 +71,29 @@ scripts/screenshot.mjs     the browser run described above
 To teach the device list a new meter, add the start of its Bluetooth name to
 `METER_NAME_PREFIXES` in `src/bluetooth.ts`.
 
-To add a purpose to **Export for AI**, add it to `PURPOSES` in `src/export.ts` and write a
-section under the same heading in `skills/usbmeter-analysis/SKILL.md`; a test keeps the two in
-step.
+To add a purpose to **Export for AI**, add it to `PURPOSES` in `src/export.ts`, name it in
+`src/locales` (`purpose.<id>`) and write a section under its English name in
+`skills/usbmeter-analysis/SKILL.md`; a test keeps the names and the sections in step.
+
+## Texts and translations
+
+Every text the page shows is a message in `src/locales/en.ts`. The other files in that folder
+are translations with the same keys; the type checker stops a build in which one lacks a key.
+
+- **To change or add a text**, edit `en.ts` and every translation. Text that is in `index.html`
+  from the start is written there too, in English, on an element that names its message
+  (`data-i18n`); `src/page.test.ts` fails when the two differ. Text that the script puts on the
+  page comes from `t("key")`.
+- **A link, a button or bold words inside a sentence** are marked in the message as
+  `<word>…</word>` and go into the child of the element that carries `data-slot="word"`. A
+  translation keeps the marks and moves them to where its sentence needs them. Text reaches the
+  page as text only, never as HTML.
+- **To add a language**, copy `en.ts` to `<tag>.ts`, translate the values and list it in
+  `LOCALES` in `src/i18n.ts` and in `inLanguage` in `index.html`. Fixes to a translation by
+  native speakers are very welcome.
+
+The export's README and the analysis guide stay in English: they are written for the assistant,
+which reads English and answers in the language it is asked in.
 
 The picture in the README is `docs/dashboard.png`: the demo after about a minute, with the
-pointer on the current graph.
+pointer on the current graph. `pnpm build && node scripts/readme-picture.mjs` renders it.

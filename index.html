@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>USB Meter Web – Bluetooth USB tester viewer for ATorch UD18, J7-C</title>
+    <title data-i18n="meta.title">
+      USB Meter Web – Bluetooth USB tester viewer for ATorch UD18, J7-C
+    </title>
     <meta
       name="description"
       content="See live voltage, current, power and capacity from a Bluetooth USB tester in your browser. Works with ATorch UD18, AT24, J7-C and similar meters. Graphs, CSV export and an export made for AI analysis, nothing to install."
@@ -30,23 +32,42 @@
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Any with Chrome or Edge (Web Bluetooth)",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "inLanguage": "en"
+        "inLanguage": ["de", "en", "es", "fr", "it", "pt-BR", "ru", "ja", "ko", "zh-Hans", "zh-Hant"]
       }
     </script>
     <link rel="stylesheet" href="/src/style.css" />
+    <!--
+      An element with data-i18n shows the message of that name (src/locales). The text written
+      here is the English one, for before the script has run; src/page.test.ts keeps the two the
+      same. A child with data-slot takes the stretch the message marks with that name.
+    -->
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
         <h1>USB Meter Web</h1>
-        <p>Live readings from your Bluetooth USB tester, in the browser</p>
+        <p data-i18n="top.tagline">Live readings from your Bluetooth USB tester, in the browser</p>
       </div>
-      <p class="pill" id="pill" data-state="idle">Not connected</p>
+      <p class="pill" id="pill" data-state="idle" data-i18n="pill.idle">Not connected</p>
       <div class="actions">
-        <button type="button" class="button button--primary" id="connect">Connect to meter</button>
-        <button type="button" class="button" id="demo">Try the demo</button>
-        <button type="button" class="button" id="disconnect" hidden>Disconnect</button>
-        <a class="button button--quiet" href="#about-title">Help</a>
+        <button type="button" class="button button--primary" id="connect" data-i18n="top.connect">
+          Connect to meter
+        </button>
+        <button type="button" class="button" id="demo" data-i18n="top.demo">Try the demo</button>
+        <button type="button" class="button" id="disconnect" data-i18n="top.disconnect" hidden>
+          Disconnect
+        </button>
+        <a class="button button--quiet" href="#about-title" data-i18n="top.help">Help</a>
+        <label class="language">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+            <circle cx="8" cy="8" r="6.4" />
+            <ellipse cx="8" cy="8" rx="2.8" ry="6.4" />
+            <path d="M1.6 8h12.8" />
+          </svg>
+          <span class="visually-hidden" data-i18n="top.language">Language</span>
+          <!-- src/main.ts lists the languages of src/i18n.ts here -->
+          <select id="language"></select>
+        </label>
       </div>
     </header>
 
@@ -54,55 +75,65 @@
       <div class="dash">
         <div class="toolbar">
           <div class="messages">
-            <p class="status" id="status" role="status">
-              Turn the meter on, then choose Connect and pick it from the list.
+            <p class="status" id="status" role="status" data-i18n="status.start">
+              Plug in the meter, then choose Connect and pick it from the list.
             </p>
-            <p class="status" id="any-device">
-              Meter not in the list?
-              <button type="button" class="link" id="connect-any">
-                Show all Bluetooth devices
-              </button>
+            <p class="status" id="any-device" data-i18n="hint.notListed">
+              Meter not in the list? <strong data-slot="b">Unplug it, plug it back in and choose
+              Connect again right away.</strong> Some meters can only be found shortly after they
+              get power. Still missing?
+              <button type="button" class="link" id="connect-any" data-slot="all">Show all Bluetooth
+              devices</button>
             </p>
-            <p class="status" id="checksum-note" hidden>
+            <p class="status" id="checksum-note" data-i18n="note.checksum" hidden>
               This meter does not use the ATorch checksum, so readings are shown without checksum
               verification.
             </p>
-            <p class="notice" id="unsupported" hidden>
+            <p class="notice" id="unsupported" data-i18n="note.unsupported" hidden>
               This browser cannot talk to Bluetooth devices. Use Chrome or Edge on a computer or an
-              Android phone. The demo works everywhere.
+              Android phone; on Linux, Chrome needs a setting first (see Help). The demo works
+              everywhere.
             </p>
           </div>
           <div class="controls">
             <fieldset class="segmented" id="range">
-              <legend>Time range</legend>
-              <label><input type="radio" name="range" value="60000" checked /><span>1 min</span></label>
-              <label><input type="radio" name="range" value="600000" /><span>10 min</span></label>
-              <label><input type="radio" name="range" value="3600000" /><span>1 h</span></label>
-              <label><input type="radio" name="range" value="all" /><span>All</span></label>
+              <legend data-i18n="range.legend">Time range</legend>
+              <label><input type="radio" name="range" value="60000" checked /><span data-i18n="range.1min">1 min</span></label>
+              <label><input type="radio" name="range" value="600000" /><span data-i18n="range.10min">10 min</span></label>
+              <label><input type="radio" name="range" value="3600000" /><span data-i18n="range.1h">1 h</span></label>
+              <label><input type="radio" name="range" value="all" /><span data-i18n="range.all">All</span></label>
             </fieldset>
-            <button type="button" class="button" id="csv" disabled>Download CSV</button>
-            <button type="button" class="button" id="ai-export" disabled>Export for AI</button>
-            <button type="button" class="button" id="clear" disabled>Clear</button>
+            <button type="button" class="button" id="csv" data-i18n="action.csv" disabled>
+              Download CSV
+            </button>
+            <button type="button" class="button" id="ai-export" data-i18n="action.aiExport" disabled>
+              Export for AI
+            </button>
+            <button type="button" class="button" id="clear" data-i18n="action.clear" disabled>
+              Clear
+            </button>
           </div>
         </div>
 
         <section class="panels" id="panels" aria-labelledby="panels-title">
-          <h2 class="visually-hidden" id="panels-title">Live readings and history</h2>
+          <h2 class="visually-hidden" id="panels-title" data-i18n="panels.title">
+            Live readings and history
+          </h2>
           <!-- src/dashboard.ts adds one wide panel per row here (voltage, current, power) -->
           <div class="panels__row" id="panels-row">
             <section class="panel panel--totals" aria-labelledby="totals-title">
-              <h3 class="panel__title" id="totals-title">Totals</h3>
+              <h3 class="panel__title" id="totals-title" data-i18n="totals.title">Totals</h3>
               <dl class="totals">
                 <div data-for="usb">
-                  <dt>Capacity</dt>
+                  <dt data-i18n="totals.capacity">Capacity</dt>
                   <dd><span class="totals__value" id="capacity">–</span> <span class="totals__unit">mAh</span></dd>
                 </div>
                 <div data-for="usb ac">
-                  <dt>Energy</dt>
+                  <dt data-i18n="totals.energy">Energy</dt>
                   <dd><span class="totals__value" id="energy">–</span> <span class="totals__unit" id="energy-unit">Wh</span></dd>
                 </div>
                 <div>
-                  <dt>Elapsed</dt>
+                  <dt data-i18n="totals.elapsed">Elapsed</dt>
                   <dd><span class="totals__value" id="duration">–</span></dd>
                 </div>
               </dl>
@@ -118,9 +149,9 @@
             <h3 class="panel__title"><span class="key"></span><span class="panel__name">Reading</span></h3>
             <div class="panel__readouts"></div>
             <dl class="panel__stats">
-              <div><dt>Min</dt><dd data-stat="min">–</dd></div>
-              <div><dt>Avg</dt><dd data-stat="mean">–</dd></div>
-              <div><dt>Max</dt><dd data-stat="max">–</dd></div>
+              <div><dt data-i18n="stat.min">Min</dt><dd data-stat="min">–</dd></div>
+              <div><dt data-i18n="stat.avg">Avg</dt><dd data-stat="mean">–</dd></div>
+              <div><dt data-i18n="stat.max">Max</dt><dd data-stat="max">–</dd></div>
             </dl>
           </div>
           <div class="panel__plot"><canvas role="img"></canvas></div>
@@ -140,101 +171,153 @@
       </template>
 
       <section class="docs" aria-labelledby="about-title">
-        <h2 id="about-title">About this viewer</h2>
-        <p>
-          Many cheap USB testers have Bluetooth, but their phone apps are slow to pair, full of
-          ads or no longer updated. This page reads the same Bluetooth stream directly and puts
-          every reading on one dashboard: voltage, current, power, temperature and the USB data
-          lines each get a graph, all on the same time axis. Move the pointer over any graph to
-          read every value at that moment, and download the whole recording as CSV or as a ZIP
-          made for AI assistants. There is nothing to install and no account.
+        <h2 id="about-title" data-i18n="help.title">About this viewer</h2>
+        <p data-i18n="help.about">
+          Many cheap USB testers have Bluetooth, but their phone apps are slow to pair, full of ads
+          or no longer updated. This page reads the same Bluetooth stream directly and puts every
+          reading on one dashboard: voltage, current, power, temperature and the USB data lines each
+          get a graph, all on the same time axis. Move the pointer over any graph to read every
+          value at that moment, and download the whole recording as CSV or as a ZIP made for AI
+          assistants. There is nothing to install and no account.
         </p>
 
-        <h3>How to use it</h3>
+        <h3 data-i18n="help.use.title">How to use it</h3>
         <ol>
-          <li>Plug the meter between a charger and the device you want to measure, and switch it on.</li>
-          <li>Open this page in Chrome or Edge and choose <strong>Connect to meter</strong>.</li>
-          <li>
-            Pick the meter in the list. A J7-C shows up as UC96_BLE, ATorch meters under their
-            model name, such as UD18-BLE or AT24-BLE. Readings start right away.
+          <li data-i18n="help.use.open">Open this page in Chrome or Edge.</li>
+          <li data-i18n="help.use.plug">
+            Plug the meter between a charger and the device you want to measure. If it was plugged
+            in already, unplug it and plug it back in: some meters, the J7-C among them, can only be
+            found shortly after they get power.
+          </li>
+          <li data-i18n="help.use.connect">
+            Choose <strong data-slot="b">Connect to meter</strong> straight away and pick the meter
+            in the list. A J7-C shows up as UC96_BLE, ATorch meters under their model name, such as
+            UD18-BLE or AT24-BLE. Readings start at once.
           </li>
         </ol>
 
-        <h3>Analyse a recording with AI</h3>
-        <p>
-          <strong>Export for AI</strong> downloads a ZIP with two files: your readings as CSV
-          and a README that tells an AI assistant what was recorded, what every column means,
-          what a meter like this can and cannot measure, and how to analyse the kind of test
-          you ran: a charging session, a charger, a power bank, a cable or the power draw of a
-          device. Give the ZIP to Claude, ChatGPT or another assistant and ask your question,
-          for example how long the charge took, whether the charger held its voltage, or how
-          much a power bank really delivers. If the assistant does not take ZIP files, unpack
-          it and give it both files.
+        <h3 data-i18n="help.ai.title">Analyse a recording with AI</h3>
+        <p data-i18n="help.ai.about">
+          <strong data-slot="b">Export for AI</strong> downloads a ZIP with two files: your readings
+          as CSV and a README that tells an AI assistant what was recorded, what every column means,
+          what a meter like this can and cannot measure, and how to analyse the kind of test you
+          ran: a charging session, a charger, a power bank, a cable or the power draw of a device.
+          Give the ZIP to Claude, ChatGPT or another assistant and ask your question, for example
+          how long the charge took, whether the charger held its voltage, or how much a power bank
+          really delivers. If the assistant does not take ZIP files, unpack it and give it both
+          files.
         </p>
-        <p>
+        <p data-i18n="help.ai.language">
+          The README is written in English. Ask in your own language and the assistant answers in
+          it.
+        </p>
+        <p data-i18n="help.ai.private">
           The page still sends nothing anywhere. The file goes only where you put it.
         </p>
-        <p>
-          For Claude there is also a skill with the same guide, so Claude has it at hand even
-          when it gets only the CSV.
-          <button type="button" class="link" id="skill">Download the Claude skill</button>
-          and add that ZIP to Claude
-          (<a href="https://support.claude.com/en/articles/12512180-using-skills-in-claude">how to add a skill</a>).
+        <p data-i18n="help.ai.skill">
+          For Claude there is also a skill with the same guide, so Claude has it at hand even when
+          it gets only the CSV.
+          <button type="button" class="link" id="skill" data-slot="download">Download the Claude
+          skill</button> and add that ZIP to Claude
+          (<a data-slot="how" href="https://support.claude.com/en/articles/12512180-use-skills-in-claude">how
+          to add a skill</a>).
         </p>
 
-        <h3>Supported meters</h3>
+        <h3 data-i18n="help.meters.title">Supported meters</h3>
         <table>
           <thead>
-            <tr><th>Meter</th><th>Type</th><th>Status</th></tr>
+            <tr>
+              <th data-i18n="help.meters.meter">Meter</th>
+              <th data-i18n="help.meters.type">Type</th>
+              <th data-i18n="help.meters.status">Status</th>
+            </tr>
           </thead>
           <tbody>
-            <tr><td>J7-C</td><td>USB</td><td>Checked against frames recorded from a real J7-C</td></tr>
-            <tr><td>ATorch UD18 and other USB meters of the same family</td><td>USB</td><td>Checked against published sample packets</td></tr>
-            <tr><td>ATorch AC meters (AC18 and similar)</td><td>AC mains</td><td>Checked against published sample packets</td></tr>
-            <tr><td>ATorch DC meters, AT24 and other models using the same protocol</td><td>DC</td><td>Experimental: voltage, current, power, temperature and time. Capacity and energy are not decoded yet</td></tr>
+            <tr>
+              <td>J7-C</td>
+              <td>USB</td>
+              <td data-i18n="help.meters.j7cStatus">
+                Checked against frames recorded from a real J7-C
+              </td>
+            </tr>
+            <tr>
+              <td data-i18n="help.meters.ud18">
+                ATorch UD18 and other USB meters of the same family
+              </td>
+              <td>USB</td>
+              <td data-i18n="help.meters.samples">Checked against published sample packets</td>
+            </tr>
+            <tr>
+              <td data-i18n="help.meters.acModels">
+                ATorch AC meters (AT24, AT3010)
+              </td>
+              <td data-i18n="help.meters.ac">AC mains</td>
+              <td data-i18n="help.meters.samples">Checked against published sample packets</td>
+            </tr>
+            <tr>
+              <td data-i18n="help.meters.dcModels">
+                ATorch DC meters (DT24, DT3010) and other models using the same protocol
+              </td>
+              <td>DC</td>
+              <td data-i18n="help.meters.dcStatus">
+                Experimental: voltage, current, power, temperature and time. Capacity and energy are
+                not decoded yet
+              </td>
+            </tr>
           </tbody>
         </table>
-        <p>
+        <p data-i18n="help.meters.report">
           If your meter connects but no readings appear, please
-          <a href="https://github.com/koedame/usbmeter/issues">open an issue</a> with its name and model.
+          <a data-slot="issue" href="https://github.com/koedame/usbmeter/issues">open an issue</a>
+          with its name and model.
         </p>
 
-        <h3>Browser support</h3>
-        <p>
-          The page uses Web Bluetooth, which Chrome and Edge provide on Windows, macOS, Linux,
-          ChromeOS and Android. Firefox and Safari (including every browser on iPhone and iPad,
-          except apps such as Bluefy that add Web Bluetooth) do not support it.
+        <h3 data-i18n="help.browsers.title">Browser support</h3>
+        <p data-i18n="help.browsers.about">
+          The page uses Web Bluetooth, which Chrome and Edge provide on Windows, macOS, ChromeOS and
+          Android. On Linux, Chrome keeps it switched off: open
+          chrome://flags/#enable-experimental-web-platform-features in Chrome and enable that flag
+          first. Firefox and Safari (including every browser on iPhone and iPad, except apps such as
+          Bluefy that add Web Bluetooth) do not support it.
         </p>
 
-        <h3>Privacy</h3>
-        <p>
-          Everything happens in your browser. The readings are kept in memory while the page is
-          open and are never sent anywhere. There are no cookies, no analytics and no ads.
+        <h3 data-i18n="help.privacy.title">Privacy</h3>
+        <p data-i18n="help.privacy.about">
+          Everything happens in your browser. The readings are kept in memory while the page is open
+          and are never sent anywhere. There are no cookies, no analytics and no ads. Like any
+          website, the page is delivered by a hosting provider, which sees your IP address when you
+          load it.
         </p>
 
-        <h3>Questions</h3>
+        <h3 data-i18n="help.faq.title">Questions</h3>
         <dl>
-          <dt>The meter does not appear in the list.</dt>
-          <dd>
-            The list shows a meter only while the browser can hear it: the meter needs to be
-            nearby and powered, with its Bluetooth switched on and no other connection.
-            Disconnect it from any phone app or other tab first, because these meters accept
-            one Bluetooth connection at a time. On Windows and Linux, make sure Bluetooth is on.
-            If the meter stays missing, unplug it and plug it back in.
-            The list also leaves out devices that do not look like a supported meter, so if
-            yours is still missing after that, cancel the list and choose
-            <strong>Show all Bluetooth devices</strong>.
-            When the page does not know the name of a meter connected that way, it says so,
-            and an <a href="https://github.com/koedame/usbmeter/issues">issue</a> with that
-            name gets it added.
+          <dt data-i18n="help.faq.missing.q">The meter does not appear in the list.</dt>
+          <dd data-i18n="help.faq.missing.replug">
+            Unplug the meter, plug it back in and choose <strong data-slot="b">Connect to
+            meter</strong> again straight away. Some meters, the J7-C among them, can only be found
+            shortly after they get power, so one that has been on for a while stays out of the list.
           </dd>
-          <dt>Why does it say the checksum is not verified?</dt>
-          <dd>
+          <dd data-i18n="help.faq.missing.other">
+            If that does not help: the list shows a meter only while the browser can hear it, so the
+            meter needs to be nearby, with its Bluetooth switched on and no other connection.
+            Disconnect it from any phone app or other tab first, because these meters accept one
+            Bluetooth connection at a time. On Windows and Linux, make sure Bluetooth is on.
+          </dd>
+          <dd data-i18n="help.faq.missing.all">
+            The list also leaves out devices that do not look like a supported meter. If yours is
+            still missing, cancel the list and choose <strong data-slot="b">Show all Bluetooth
+            devices</strong>. When the page does not know the name of a meter connected that way, it
+            says so, and an
+            <a data-slot="issue" href="https://github.com/koedame/usbmeter/issues">issue</a> with
+            that name gets it added.
+          </dd>
+          <dt data-i18n="help.faq.checksum.q">Why does it say the checksum is not verified?</dt>
+          <dd data-i18n="help.faq.checksum.a">
             Some meters, the J7-C among them, use a different checksum from the ATorch one. The
             readings are still shown when the frame is otherwise well formed.
           </dd>
-          <dt>Can it reset the counters or change settings?</dt>
-          <dd>Not yet. The viewer only reads.</dd>
+          <dt data-i18n="help.faq.settings.q">Can it reset the counters or change settings?</dt>
+          <dd data-i18n="help.faq.settings.a">Not yet. The viewer only reads.</dd>
         </dl>
       </section>
     </main>
@@ -245,24 +328,22 @@
       aria-labelledby="export-title"
       aria-describedby="export-about"
     >
-      <h2 id="export-title">Export for AI</h2>
-      <p id="export-about">
-        Downloads a ZIP with your readings and a README that explains them, ready to hand to
-        Claude, ChatGPT or another AI assistant. Say what you measured, so it knows what to
-        look for.
+      <h2 id="export-title" data-i18n="action.aiExport">Export for AI</h2>
+      <p id="export-about" data-i18n="export.about">
+        Downloads a ZIP with your readings and a README that explains them, ready to hand to Claude,
+        ChatGPT or another AI assistant. Say what you measured, so it knows what to look for.
       </p>
-      <label for="export-purpose">What did you measure?</label>
+      <label for="export-purpose" data-i18n="export.purpose">What did you measure?</label>
       <select id="export-purpose"></select>
-      <label for="export-notes">Notes for the assistant <span class="optional">optional</span></label>
-      <textarea
-        id="export-notes"
-        rows="3"
-        maxlength="1000"
-        placeholder="65 W charger, 1 m cable, phone starting at 20 %"
-      ></textarea>
+      <label for="export-notes" data-i18n="export.notes">
+        Notes for the assistant <span class="optional" data-slot="optional">optional</span>
+      </label>
+      <textarea id="export-notes" rows="3" maxlength="1000"></textarea>
       <div class="dialog__actions">
-        <button type="button" class="button" id="export-cancel">Cancel</button>
-        <button type="button" class="button button--primary" id="export-download">
+        <button type="button" class="button" id="export-cancel" data-i18n="export.cancel">
+          Cancel
+        </button>
+        <button type="button" class="button button--primary" id="export-download" data-i18n="export.download">
           Download ZIP
         </button>
       </div>
@@ -271,10 +352,15 @@
     <div class="tooltip" id="tooltip" aria-hidden="true" hidden></div>
 
     <footer class="footer">
-      <p>
-        MIT licensed · <a href="https://github.com/koedame/usbmeter">Source on GitHub</a> ·
-        Not affiliated with ATorch, any meter maker or any AI provider. Product names belong to
-        their owners and are used only to say what this page works with.
+      <p data-i18n="footer.text">
+        MIT licensed · <a data-slot="source" href="https://github.com/koedame/usbmeter">Source on
+        GitHub</a> · Not affiliated with ATorch, any meter maker or any AI provider. Product names
+        belong to their owners and are used only to say what this page works with.
+      </p>
+      <p data-i18n="footer.warranty">
+        Run by koedame and provided as is, without warranty. Readings can be wrong: this is not a
+        calibrated instrument or a safety device, so do not use it to decide whether a circuit, a
+        charger or an appliance is safe.
       </p>
     </footer>
     <script type="module" src="/src/main.ts"></script>

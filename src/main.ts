@@ -1,28 +1,23 @@
-import { bluetoothSupported, connectMeter } from "./bluetooth.ts";
+import { bluetoothSupported, connectMeter, MeterError } from "./bluetooth.ts";
 import { Dashboard } from "./dashboard.ts";
 import { startDemo } from "./demo.ts";
-import { purposesFor, recordingArchive, skillArchive } from "./export.ts";
+import { purposeName, purposesFor, recordingArchive, skillArchive } from "./export.ts";
 import { formatCapacity, formatDuration, formatEnergy } from "./format.ts";
 import { History } from "./history.ts";
+import { LOCALES, locale, matchLocale, setLocale, startLocale, t, translate } from "./i18n.ts";
+import type { MessageKey } from "./locales/en.ts";
 import { FrameStream, parseReport, type Reading } from "./protocol.ts";
 
 type State = "idle" | "connecting" | "live" | "demo" | "error";
 type Source = "meter" | "demo";
 
-const PILL_TEXT: Record<State, string> = {
-  idle: "Not connected",
-  connecting: "Connecting…",
-  live: "Connected",
-  demo: "Demo",
-  error: "Not connected",
+const PILL_TEXT: Record<State, MessageKey> = {
+  idle: "pill.idle",
+  connecting: "pill.connecting",
+  live: "pill.live",
+  demo: "pill.demo",
+  error: "pill.idle",
 };
-
-// The browser's list shows only the devices it hears while the list is open, and it says
-// nothing when that leaves the list empty. So the page says what a meter needs to be in it
-// and what to try when it is still missing: a J7-C that had stopped advertising was heard
-// again right after it was plugged back in.
-const LISTED_WHEN =
-  "A meter is listed only while it is nearby and powered, its Bluetooth is on and nothing else, such as a phone app or another tab, is connected to it. If it stays missing, unplug the meter and plug it back in.";
 
 function element<T extends HTMLElement>(id: string): T {
   const found = document.getElementById(id);
@@ -49,9 +44,13 @@ const ui = {
   exportDownload: element<HTMLButtonElement>("export-download"),
   skill: element<HTMLButtonElement>("skill"),
   clear: element<HTMLButtonElement>("clear"),
+  language: element<HTMLSelectElement>("language"),
   range: element("range"),
   energyUnit: element("energy-unit"),
 };
+
+// before anything puts text on the page
+setLocale(startLocale(location.search, navigator.languages));
 
 const history = new History();
 const dashboard = new Dashboard(element("panels-row"), element("tooltip"));
@@ -91,10 +90,23 @@ function setText(id: string, text: string): void {
   element(id).textContent = text;
 }
 
-function setState(state: State, message: string): void {
+/**
+ * Where the connection stands, and the status line that goes with it. The line is kept as a
+ * way to word it, so that it can be said again when the language changes.
+ */
+let state: State = "idle";
+let status = () => t("status.start");
+
+function showStatus(): void {
+  ui.pill.textContent = t(PILL_TEXT[state]);
+  ui.status.textContent = status();
+}
+
+function setState(next: State, message: () => string): void {
+  state = next;
+  status = message;
   ui.pill.dataset.state = state;
-  ui.pill.textContent = PILL_TEXT[state];
-  ui.status.textContent = message;
+  showStatus();
   const running = state === "live" || state === "demo";
   const focused = [ui.connect, ui.connectAny, ui.demo, ui.disconnect].find(
     (button) => button === document.activeElement,
@@ -175,36 +187,49 @@ function begin(source: Source, stop: () => void = () => {}): Session {
 /** `anyDevice` lists every Bluetooth device nearby instead of only the ones that look like a meter */
 async function connect(anyDevice = false): Promise<void> {
   const mine = begin("meter");
-  setState("connecting", "Choose your meter in the browser's Bluetooth list…");
+  setState("connecting", () => t("status.choosing"));
   try {
     const connection = await connectMeter(
       (chunk) => onChunk(mine, chunk),
       () => {
         if (mine !== session) return;
         session = undefined;
-        setState("idle", "The meter disconnected. Choose Connect to reconnect.");
+        setState("idle", () => t("status.lost"));
       },
       anyDevice,
     );
     if (!connection) {
       if (mine !== session) return;
       session = undefined;
-      setState("idle", `No meter chosen. ${LISTED_WHEN}`);
+      // The browser's list shows only what it hears while it is open, and says nothing when
+      // that leaves it empty, so the page says what a meter needs to be in it. What to do
+      // about a missing one is on the page all along, in the line under this one.
+      setState("idle", () => t("status.noneChosen"));
       return;
     }
     mine.stop = connection.disconnect;
     if (mine !== session) return connection.disconnect();
-    mine.meterName = connection.name ?? "unnamed meter";
-    let status = `Reading from ${connection.name ?? "a meter without a Bluetooth name"}.`;
-    if (anyDevice && connection.name !== undefined && !connection.knownName)
-      status += ` This page does not know that name yet; report it as "${connection.exactName}" through Help so it can be added.`;
-    setState("live", status);
+    const { name, exactName, knownName } = connection;
+    mine.meterName = name ?? "unnamed meter";
+    setState("live", () => {
+      if (name === undefined) return t("status.readingUnnamed");
+      return anyDevice && !knownName
+        ? t("status.readingUnknown", { name, exact: exactName ?? name })
+        : t("status.reading", { name });
+    });
   } catch (error) {
     if (mine !== session) return;
     session = undefined;
-    setState(
-      "error",
-      `Could not connect: ${error instanceof Error ? error.message : String(error)}`,
+    // What the browser says about a failed connection comes in the browser's own words
+    setState("error", () =>
+      t("status.failed", {
+        reason:
+          error instanceof MeterError
+            ? t(`error.${error.code}`)
+            : error instanceof Error
+              ? error.message
+              : String(error),
+      }),
     );
   }
 }
@@ -212,7 +237,7 @@ async function connect(anyDevice = false): Promise<void> {
 function startDemoMode(): void {
   const mine = begin("demo");
   mine.stop = startDemo((chunk) => onChunk(mine, chunk));
-  setState("demo", "Showing made-up readings from a pretend charger. Nothing is connected.");
+  setState("demo", () => t("status.demo"));
 }
 
 /** Hands a file to the browser's downloads */
@@ -241,7 +266,10 @@ function download(): void {
 function askExport(): void {
   const kind = history.window(undefined).at(-1)?.reading.kind ?? "usb";
   const chosen = ui.exportPurpose.value;
-  ui.exportPurpose.replaceChildren(...purposesFor(kind).map((label) => new Option(label)));
+  // shown in the page's language; the value is the English name that goes into the README
+  ui.exportPurpose.replaceChildren(
+    ...purposesFor(kind).map((id) => new Option(t(`purpose.${id}`), purposeName(id))),
+  );
   // keep what was picked for the last export when it is still on offer
   if ([...ui.exportPurpose.options].some((option) => option.value === chosen))
     ui.exportPurpose.value = chosen;
@@ -268,7 +296,7 @@ ui.demo.addEventListener("click", startDemoMode);
 ui.disconnect.addEventListener("click", () => {
   session?.stop();
   session = undefined;
-  setState("idle", "Disconnected. The recorded readings are still below.");
+  setState("idle", () => t("status.disconnected"));
 });
 ui.csv.addEventListener("click", download);
 ui.aiExport.addEventListener("click", askExport);
@@ -282,6 +310,37 @@ ui.clear.addEventListener("click", () => {
   redrawChart();
 });
 ui.range.addEventListener("change", redrawChart);
+
+/** Puts everything on the page into the language that is set */
+function showLanguage(): void {
+  document.documentElement.lang = locale().tag;
+  ui.language.value = locale().tag;
+  translate(document);
+  ui.exportNotes.placeholder = t("export.notesExample");
+  dashboard.retranslate();
+  showStatus(); // last: the status line and the pill follow the connection, not their markup
+}
+
+/** Each language is listed under its own name, so it can be found from any other */
+ui.language.replaceChildren(
+  ...LOCALES.map(({ tag, name }) => {
+    const option = new Option(name, tag);
+    option.lang = tag;
+    return option;
+  }),
+);
+ui.language.addEventListener("change", () => {
+  const chosen = matchLocale([ui.language.value]);
+  if (!chosen) return;
+  setLocale(chosen);
+  // The choice goes into the address, which is the one place the page keeps it: a reload or
+  // a bookmark opens the page in the same language, and nothing is stored in the browser.
+  const address = new URL(location.href);
+  address.searchParams.set("lang", chosen.tag);
+  window.history.replaceState(null, "", address);
+  showLanguage();
+});
+showLanguage();
 
 if (!supported) {
   ui.unsupported.hidden = false;

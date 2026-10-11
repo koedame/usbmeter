@@ -1,6 +1,7 @@
 ---
 name: usbmeter-analysis
 description: Analyse a USB Meter Web recording from a Bluetooth USB tester such as the J7-C, given as the export ZIP (README.md and readings.csv) or a usb-meter CSV with voltage_v, current_a and power_w columns.
+license: MIT
 ---
 
 # How to analyse a USB Meter Web recording
@@ -75,6 +76,9 @@ the quantity.
 - **Only what flows through the meter is measured.** A charger rated 65 W shows 18 W when the
   device asks for 18 W. What a charger or a cable *can* deliver only shows under a load that
   asks for it.
+- **Not a safety verdict.** These meters are uncalibrated hobby instruments, and the recording
+  is as good as the meter. Do not conclude from it that a charger, a cable, an appliance or a
+  circuit is safe, and say so when the person asks for that.
 
 ## What D+ and D− say (USB meters)
 

@@ -13,6 +13,10 @@ export function formatEnergy(reading: Reading): { value: string; unit: string } 
   return { value: energyWh.toFixed(2), unit: "Wh" };
 }
 
+/**
+ * Capacity in mAh. Written without a thousands separator: "1,234" is a thousand in one
+ * language of the page and a little over one in the next.
+ */
 export function formatCapacity(capacityAh: number): string {
-  return Math.round(capacityAh * 1000).toLocaleString("en-US");
+  return String(Math.round(capacityAh * 1000));
 }

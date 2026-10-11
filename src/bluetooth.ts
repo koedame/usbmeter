@@ -45,6 +45,16 @@ export function exactName(name: string): string {
   return name.replace(/\p{C}/gu, (hidden) => `\\u{${hidden.codePointAt(0)?.toString(16)}}`);
 }
 
+/** Why a device that was picked cannot be read. The page words the reason in its language. */
+export class MeterError extends Error {
+  readonly code: "noGatt" | "noSerialService";
+
+  constructor(code: MeterError["code"]) {
+    super(code);
+    this.code = code;
+  }
+}
+
 export interface MeterConnection {
   /** The meter's Bluetooth name, when it has one */
   name: string | undefined;
@@ -102,7 +112,7 @@ export async function connectMeter(
   device.addEventListener("gattserverdisconnected", handleLost);
   try {
     const server = await device.gatt?.connect();
-    if (!server) throw new Error("This device does not offer a GATT connection.");
+    if (!server) throw new MeterError("noGatt");
     characteristic = await findNotifyCharacteristic(server);
     characteristic.addEventListener("characteristicvaluechanged", handleValue);
     await characteristic.startNotifications();
@@ -136,7 +146,5 @@ async function findNotifyCharacteristic(
     const found = preferred ?? notifying[0];
     if (found) return found;
   }
-  throw new Error(
-    "This device has no serial-over-Bluetooth service (0xFFE0) that streams readings. It may not be a supported meter.",
-  );
+  throw new MeterError("noSerialService");
 }

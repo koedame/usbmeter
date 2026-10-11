@@ -14,6 +14,7 @@ import {
   timeAt,
 } from "./chart.ts";
 import type { Sample } from "./history.ts";
+import { t, translate } from "./i18n.ts";
 import { METRICS, type Metric, PANELS, type PanelDef } from "./metrics.ts";
 import type { MeterKind, Reading } from "./protocol.ts";
 
@@ -21,6 +22,10 @@ interface Panel {
   def: PanelDef;
   metrics: Metric[];
   root: HTMLElement;
+  /** the heading */
+  name: HTMLElement;
+  /** the legend entries of a panel with several metrics, in their order; empty for a single one */
+  labels: HTMLElement[];
   canvas: HTMLCanvasElement;
   /** the live value of each metric */
   values: HTMLElement[];
@@ -59,7 +64,6 @@ function buildPanel(def: PanelDef): Panel {
 
   const title = part(root, ".panel__title");
   title.id = `panel-${def.id}`;
-  part(title, ".panel__name").textContent = def.title;
   root.setAttribute("aria-labelledby", title.id);
 
   // One quantity: the title names it and carries the colour key, and there is room for its
@@ -70,14 +74,17 @@ function buildPanel(def: PanelDef): Panel {
   else part(title, ".key").remove();
 
   const readouts = part(root, ".panel__readouts");
+  const labels: HTMLElement[] = [];
   const values = metrics.map((metric) => {
     const readout = clone("readout-template");
     readout.dataset.metric = metric.id;
-    part(readout, ".readout__label").textContent = metric.label;
     part(readout, ".readout__unit").textContent = metric.unit;
+    const label = part(readout, ".readout__label");
     if (single) {
       part(readout, ".key").remove();
-      part(readout, ".readout__label").remove();
+      label.remove();
+    } else {
+      labels.push(label);
     }
     const value = part(readout, ".readout__value");
     value.dataset.readout = metric.id;
@@ -97,9 +104,9 @@ function buildPanel(def: PanelDef): Panel {
     statsRoot.remove();
   }
 
+  const name = part(title, ".panel__name");
   const canvas = part<HTMLCanvasElement>(root, "canvas");
-  canvas.setAttribute("aria-label", `${def.title} over time`);
-  return { def, metrics, root, canvas, values, stats, series: [], axis: undefined };
+  return { def, metrics, root, name, labels, canvas, values, stats, series: [], axis: undefined };
 }
 
 export class Dashboard {
@@ -134,6 +141,21 @@ export class Dashboard {
         panel.canvas.addEventListener(type, () => this.release());
     }
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => this.schedule());
+    this.retranslate();
+  }
+
+  /** Puts the names of the panels and of what they plot into the page's language */
+  retranslate(): void {
+    for (const panel of this.panels) {
+      const title = panel.def.title();
+      panel.name.textContent = title;
+      panel.canvas.setAttribute("aria-label", t("panel.overTime", { name: title }));
+      panel.labels.forEach((label, i) => {
+        label.textContent = panel.metrics[i]?.label() ?? "";
+      });
+      translate(panel.root);
+    }
+    this.schedule(); // an empty plot says so in words, and the tooltip names every quantity
   }
 
   /** Puts the newest reading into the live readouts */
@@ -246,7 +268,7 @@ export class Dashboard {
     for (const panel of this.panels) {
       if (panel.root.hidden) continue;
       if (!this.span || !panel.axis) {
-        drawEmpty(panel.canvas, "No data yet");
+        drawEmpty(panel.canvas, t("plot.empty"));
         continue;
       }
       const traces = panel.metrics.map((metric, i) => {
@@ -282,7 +304,7 @@ export class Dashboard {
         if (value === undefined) continue;
         const row = clone("tooltip-row-template");
         row.dataset.metric = metric.id;
-        part(row, ".tooltip__label").textContent = metric.label;
+        part(row, ".tooltip__label").textContent = metric.label();
         part(row, ".tooltip__value").textContent = value.toFixed(
           metric.digits(sample.reading.kind),
         );
