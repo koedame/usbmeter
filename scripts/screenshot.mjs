@@ -56,7 +56,7 @@ const J7C_NAME = "UC96_BLE\u0000\u0000\u0000";
 
 /** What the status line says about a meter that is missing from the picker (src/main.ts) */
 const LISTED_WHEN =
-  "A meter is listed only while it has power, its Bluetooth is on and nothing else";
+  "A meter is listed only while it is nearby and powered, its Bluetooth is on and nothing else";
 
 /** What the fake J7-C must show once its first frame has arrived: readout or element id, and its text */
 const J7C_EXPECTED = {
@@ -309,6 +309,11 @@ for (const screen of SCREENS) {
   await page.goto(`http://127.0.0.1:${port}/`);
   // what a visitor sees first, before any reading
   await page.screenshot({ path: join(OUT, `${screen.name}-start.png`) });
+  // An empty list in the browser says nothing and covers the status line, so the way to the
+  // full list has to be on the page before the first try (only a browser with Bluetooth has one).
+  const everything = page.getByRole("button", { name: "Show all Bluetooth devices" });
+  if ((await everything.isVisible()) !== (screen.source === "fake-ble"))
+    fail("the full device list is offered without Bluetooth, or not offered with it");
 
   if (screen.source === "demo") {
     await page.getByRole("button", { name: "Try the demo" }).click();
@@ -317,23 +322,24 @@ for (const screen of SCREENS) {
     await page.getByRole("button", { name: "Connect to meter" }).click();
     if (!(await page.getByRole("button", { name: "Try the demo" }).isDisabled()))
       fail("the demo can be started while a connection is pending");
+    if (await everything.isEnabled())
+      fail("a second device list can be opened while a connection is pending");
     if (screen.unlisted) {
-      // the narrowed list does not show this meter; the page must offer the full list
-      const everything = page.getByRole("button", { name: /Show all Bluetooth devices/ });
-      await everything.waitFor();
+      // the narrowed list does not show this meter, so the pick ends without one
+      await page.locator("#status", { hasText: "No meter chosen" }).waitFor();
       const narrowed = await page.evaluate(() => window.pickerListed);
       if (narrowed.length > 0) fail(`the narrowed picker listed ${JSON.stringify(narrowed)}`);
       // the browser says nothing about an empty list, so the page has to
       const hint = await page.locator("#status").textContent();
-      if (!hint.includes(LISTED_WHEN) || !hint.includes("choose Show all Bluetooth devices"))
-        fail(`after an empty list the status does not say what to do: ${hint.trim()}`);
+      if (!hint.includes(LISTED_WHEN))
+        fail(`after an empty list the status does not say what to check: ${hint.trim()}`);
       await page.screenshot({ path: join(OUT, `${screen.name}-cancelled.png`) });
       await everything.click();
     }
     await page.getByRole("button", { name: "Disconnect" }).waitFor();
     const reading = (await page.locator("#status").textContent()).trim();
     const wanted = screen.unlisted
-      ? `Reading from ${meterName}. This page does not know that name yet; report it through Help so it can be added.`
+      ? `Reading from ${meterName}. This page does not know that name yet; report it as "${meterName}" through Help so it can be added.`
       : `Reading from ${meterName.replaceAll("\u0000", "")}.`;
     if (reading !== wanted) fail(`the status reads "${reading}", expected "${wanted}"`);
     const listed = await page.evaluate(() => window.pickerListed);
@@ -435,10 +441,10 @@ await browser.close();
     ROOM.filter(wanted)
       .map((device) => device.name)
       .sort();
-  // closing the narrowed list must point to the full one; closing the full one has nowhere to point
-  for (const [button, expected, pointsToFullList] of [
-    [/Connect to meter/, names((device) => device.meter), true],
-    [/Show all Bluetooth devices/, names(() => true), false],
+  // closing either list without a pick must say what a meter needs to be listed
+  for (const [button, expected] of [
+    [/Connect to meter/, names((device) => device.meter)],
+    [/Show all Bluetooth devices/, names(() => true)],
   ]) {
     shown = undefined;
     await page.getByRole("button", { name: button }).click();
@@ -450,12 +456,9 @@ await browser.close();
       problems.push(`picker for ${button}: listed ${JSON.stringify(listed)}`);
     console.log(`picker ${button}  lists ${listed.join(", ") || "nothing"}`);
     if (shown) await picker.send("DeviceAccess.cancelPrompt", { id: shown.id });
-    await page.getByRole("button", { name: /Show all Bluetooth devices/ }).waitFor();
+    await page.locator("#status", { hasText: "No meter chosen" }).waitFor();
     const closed = await page.locator("#status").textContent();
-    if (
-      !closed.includes(LISTED_WHEN) ||
-      closed.includes("choose Show all Bluetooth devices") !== pointsToFullList
-    )
+    if (!closed.includes(LISTED_WHEN))
       problems.push(`picker for ${button}: after closing it the status reads "${closed.trim()}"`);
   }
   await full.close();

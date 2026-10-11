@@ -19,7 +19,7 @@ const PILL_TEXT: Record<State, string> = {
 // The browser's list shows only the devices it hears while the list is open, and it says
 // nothing when that leaves the list empty. So the page says what a meter needs to be in it.
 const LISTED_WHEN =
-  "A meter is listed only while it has power, its Bluetooth is on and nothing else, such as a phone app or another tab, is connected to it.";
+  "A meter is listed only while it is nearby and powered, its Bluetooth is on and nothing else, such as a phone app or another tab, is connected to it.";
 
 function element<T extends HTMLElement>(id: string): T {
   const found = document.getElementById(id);
@@ -34,6 +34,7 @@ const ui = {
   unsupported: element("unsupported"),
   connect: element<HTMLButtonElement>("connect"),
   connectAny: element<HTMLButtonElement>("connect-any"),
+  anyDevice: element("any-device"),
   demo: element<HTMLButtonElement>("demo"),
   disconnect: element<HTMLButtonElement>("disconnect"),
   csv: element<HTMLButtonElement>("csv"),
@@ -63,16 +64,19 @@ function setText(id: string, text: string): void {
   element(id).textContent = text;
 }
 
-/** `offerAnyDevice` adds the way out for a meter that the narrowed device list did not show */
-function setState(state: State, message: string, offerAnyDevice = false): void {
+function setState(state: State, message: string): void {
   ui.pill.dataset.state = state;
   ui.pill.textContent = PILL_TEXT[state];
   ui.status.textContent = message;
   const running = state === "live" || state === "demo";
-  const hadFocus = [ui.connect, ui.connectAny, ui.demo, ui.disconnect].includes(
-    document.activeElement as HTMLButtonElement,
+  const focused = [ui.connect, ui.connectAny, ui.demo, ui.disconnect].find(
+    (button) => button === document.activeElement,
   );
-  ui.connectAny.hidden = !offerAnyDevice;
+  // The browser's list cannot say why it is empty and can cover the status line while it is
+  // open, so the way to the full list is on the page before the first try, not only after a
+  // failed one.
+  ui.anyDevice.hidden = running || !supported;
+  ui.connectAny.disabled = state === "connecting";
   ui.connect.hidden = running;
   ui.demo.hidden = running;
   ui.disconnect.hidden = !running;
@@ -80,7 +84,8 @@ function setState(state: State, message: string, offerAnyDevice = false): void {
   ui.demo.disabled = state === "connecting";
   if (state !== "demo" && state !== "live") ui.checksumNote.hidden = true;
   // A hidden button cannot keep the keyboard focus, so hand it to the one that took its place.
-  if (hadFocus) (running ? ui.disconnect : supported ? ui.connect : ui.demo).focus();
+  const replacement = running ? ui.disconnect : supported ? ui.connect : ui.demo;
+  if (focused) (focused.closest("[hidden]") ? replacement : focused).focus();
 }
 
 function showKind(kind: Reading["kind"]): void {
@@ -158,21 +163,14 @@ async function connect(anyDevice = false): Promise<void> {
     if (!connection) {
       if (mine !== session) return;
       session = undefined;
-      setState(
-        "idle",
-        anyDevice
-          ? `No meter chosen. ${LISTED_WHEN}`
-          : `No meter chosen. ${LISTED_WHEN} If yours is ready and still missing, choose Show all Bluetooth devices.`,
-        true, // the meter may simply not have been in the narrowed list
-      );
+      setState("idle", `No meter chosen. ${LISTED_WHEN}`);
       return;
     }
     mine.stop = connection.disconnect;
     if (mine !== session) return connection.disconnect();
     let status = `Reading from ${connection.name ?? "a meter without a Bluetooth name"}.`;
     if (anyDevice && connection.name !== undefined && !connection.knownName)
-      status +=
-        " This page does not know that name yet; report it through Help so it can be added.";
+      status += ` This page does not know that name yet; report it as "${connection.exactName}" through Help so it can be added.`;
     setState("live", status);
   } catch (error) {
     if (mine !== session) return;
@@ -223,6 +221,7 @@ ui.range.addEventListener("change", redrawChart);
 if (!supported) {
   ui.unsupported.hidden = false;
   ui.connect.disabled = true;
+  ui.anyDevice.hidden = true;
 }
 showKind("usb"); // the layout to start with, until a meter says what it is
 redrawChart();

@@ -57,9 +57,12 @@
             <p class="status" id="status" role="status">
               Turn the meter on, then choose Connect and pick it from the list.
             </p>
-            <button type="button" class="link" id="connect-any" hidden>
-              Show all Bluetooth devices
-            </button>
+            <p class="status" id="any-device">
+              Meter not in the list?
+              <button type="button" class="link" id="connect-any">
+                Show all Bluetooth devices
+              </button>
+            </p>
             <p class="status" id="checksum-note" hidden>
               This meter does not use the ATorch checksum, so readings are shown without checksum
               verification.
@@ -190,12 +193,13 @@
         <dl>
           <dt>The meter does not appear in the list.</dt>
           <dd>
-            The list shows a meter only while the browser can hear it: the meter needs power,
-            its Bluetooth switched on, and no other connection. Disconnect it from any phone
-            app or other tab first, because these meters accept one Bluetooth connection at a
-            time. On Windows and Linux, make sure Bluetooth is on. The list also leaves out
-            devices that do not look like a supported meter. If yours is ready and still
-            missing, cancel the list and choose <strong>Show all Bluetooth devices</strong>.
+            The list shows a meter only while the browser can hear it: the meter needs to be
+            nearby and powered, with its Bluetooth switched on and no other connection.
+            Disconnect it from any phone app or other tab first, because these meters accept
+            one Bluetooth connection at a time. On Windows and Linux, make sure Bluetooth is on.
+            The list also leaves out devices that do not look like a supported meter. If yours
+            is ready and still missing, cancel the list and choose
+            <strong>Show all Bluetooth devices</strong>.
             When the page does not know the name of a meter connected that way, it says so,
             and an <a href="https://github.com/koedame/usbmeter/issues">issue</a> with that
             name gets it added.

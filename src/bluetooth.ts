@@ -33,9 +33,20 @@ export function shownName(name: string | undefined): string | undefined {
   return name?.replaceAll("\0", "") || undefined;
 }
 
+/**
+ * A device name exactly as the browser matched it against the list, with every character that
+ * does not print written as an escape. A name is matched from its first character, so a hidden
+ * one in front keeps a meter out of the narrowed list although the name reads like a known one.
+ */
+export function exactName(name: string): string {
+  return name.replace(/\p{C}/gu, (hidden) => `\\u{${hidden.codePointAt(0)?.toString(16)}}`);
+}
+
 export interface MeterConnection {
   /** The meter's Bluetooth name, when it has one */
   name: string | undefined;
+  /** The name as the meter sends it (`exactName`), when it has one */
+  exactName: string | undefined;
   /** Whether the name starts like a meter this page knows */
   knownName: boolean;
   /** Closes the link and removes every listener. Safe to call more than once. */
@@ -98,6 +109,7 @@ export async function connectMeter(
   }
   return {
     name: shownName(device.name),
+    exactName: device.name === undefined ? undefined : exactName(device.name),
     knownName: knownMeterName(device.name),
     disconnect: close,
   };

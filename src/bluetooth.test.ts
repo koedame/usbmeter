@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { knownMeterName, METER_FILTERS, shownName } from "./bluetooth.ts";
+import { exactName, knownMeterName, METER_FILTERS, shownName } from "./bluetooth.ts";
 
 /** Whether the browser would list a device with this advertised name and these advertised services */
 function listed(name: string, services: number[] = []): boolean {
@@ -63,5 +63,23 @@ describe("shownName", () => {
 
   it("when a device has no name, or nothing but padding, there is no name to show", () => {
     expect([undefined, "", "\0\0"].map(shownName)).toEqual([undefined, undefined, undefined]);
+  });
+});
+
+describe("exactName", () => {
+  it("when the name has characters that do not print, in front or as padding, they are written out", () => {
+    expect(["\0UC96_BLE", "BT-METER\0\0", "\u200bUC96"].map(exactName)).toEqual([
+      "\\u{0}UC96_BLE",
+      "BT-METER\\u{0}\\u{0}",
+      "\\u{200b}UC96",
+    ]);
+  });
+
+  it("when every character prints, spaces and non-Latin letters included, the name stays as it is", () => {
+    expect([" UC96_BLE", "BT-METER-01", "電力計"].map(exactName)).toEqual([
+      " UC96_BLE",
+      "BT-METER-01",
+      "電力計",
+    ]);
   });
 });
