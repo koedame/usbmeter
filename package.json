@@ -23,6 +23,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
     "@types/web-bluetooth": "^0.0.21",
+    "fflate": "0.8.3",
     "playwright": "1.63.0",
     "typescript": "5.9.3",
     "vite": "7.3.6",

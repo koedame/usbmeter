@@ -30,7 +30,9 @@ pnpm build && pnpm screenshot           # writes screenshots/
 on a desktop, a laptop and a phone-sized window, in both colour schemes. It runs the demo and a
 **fake Bluetooth meter** that replays real J7-C frames (and AC and DC sample packets) in 20-byte
 notifications, then checks the numbers on screen, the status line, the CSV, the cursor tooltip,
-that every plot is painted and that the dashboard fits the window. Last, it gives Chromium an
+that every plot is painted and that the dashboard fits the window. It runs **Export for AI** on
+every screen, unpacks the ZIP the browser downloaded and checks the README and the CSV in it,
+and does the same for the Claude skill. Last, it gives Chromium an
 emulated Bluetooth adapter with meters and unrelated gadgets around it and reads which of them
 the real device picker lists. Any console error or CSP violation fails the run. It is the
 closest thing to a hardware test that does not need a meter, so look at the pictures after a
@@ -47,6 +49,10 @@ src/protocol.ts            frame format: parse, checksum, stream reassembly, enc
 src/bluetooth.ts           Web Bluetooth: narrow the device list, pick a meter, subscribe to notifications
 src/demo.ts                pretend meter for the demo button
 src/history.ts             recorded samples and CSV
+src/summary.ts             what a recording adds up to: ranges, totals, pauses
+src/export.ts              "Export for AI": the README of the export, its ZIP, the skill download
+src/zip.ts                 ZIP writer (files stored as they are)
+skills/usbmeter-analysis/  the analysis guide: a Claude skill, and part of every export's README
 src/metrics.ts             the measured quantities and the panels they are grouped into
 src/chart.ts               one canvas plot: axis scaling, thinning of long recordings, drawing
 src/dashboard.ts           the panels, their readouts and ranges, the shared cursor and tooltip
@@ -56,6 +62,10 @@ scripts/screenshot.mjs     the browser run described above
 
 To teach the device list a new meter, add the start of its Bluetooth name to
 `METER_NAME_PREFIXES` in `src/bluetooth.ts`.
+
+To add a purpose to **Export for AI**, add it to `PURPOSES` in `src/export.ts` and write a
+section under the same heading in `skills/usbmeter-analysis/SKILL.md`; a test keeps the two in
+step.
 
 The picture in the README is `docs/dashboard.png`: the demo after about a minute, with the
 pointer on the current graph.

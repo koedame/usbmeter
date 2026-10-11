@@ -13,6 +13,10 @@
 //     keyboard, earbuds and a mouse in it, so the script also sees which devices would be listed.
 // Without a meter in reach this is the closest check of the Bluetooth path.
 //
+// Every screen also runs "Export for AI" and unpacks the ZIP the browser downloaded: the README
+// has to describe that recording, the CSV has to be the one "Download CSV" gives, and the
+// purposes on offer have to fit the kind of meter. The Claude skill is downloaded the same way.
+//
 // Last, the real device picker is asked what it would list: Chromium gets an emulated
 // Bluetooth adapter with meters and unrelated gadgets around it (ROOM), and the script reads
 // the picker's list for "Connect to meter" and for "Show all Bluetooth devices".
@@ -21,6 +25,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { strFromU8, unzipSync } from "fflate";
 import { chromium } from "playwright";
 
 const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
@@ -398,6 +403,71 @@ for (const screen of SCREENS) {
   const csv = (await readFile(await download.path(), "utf8")).split("\n");
   if (!csv[0].startsWith("time,elapsed_s,voltage_v") || csv.length < 5)
     fail(`CSV looks wrong (${csv.length} lines)`);
+
+  // Export for AI: the dialog asks what was measured, then the browser downloads a ZIP
+  const unpack = async (saved) =>
+    Object.fromEntries(
+      Object.entries(unzipSync(await readFile(await saved.path()))).map(([path, data]) => [
+        path,
+        strFromU8(data),
+      ]),
+    );
+  const kind = quantities.includes("D+") ? "usb" : quantities.includes("Frequency") ? "ac" : "dc";
+  const purpose = kind === "ac" ? "Power use of an appliance" : "Testing a charger or power supply";
+  await page.getByRole("button", { name: "Export for AI" }).click();
+  const dialog = page.getByRole("dialog", { name: "Export for AI" });
+  await dialog.waitFor();
+  const offered = await dialog
+    .getByLabel("What did you measure?")
+    .locator("option")
+    .allInnerTexts();
+  if (offered.includes("Power use of an appliance") !== (kind === "ac") || offered.length < 2)
+    fail(`a ${kind} meter is offered the purposes ${JSON.stringify(offered)}`);
+  await dialog.getByLabel("What did you measure?").selectOption(purpose);
+  await dialog.getByLabel("Notes for the assistant").fill("30 W charger | 1 m cable");
+  const box = await dialog.boundingBox();
+  if (box.x < 0 || box.x + box.width > screen.viewport.width || box.y < 0)
+    fail(`the export dialog sticks out of the window (x=${box.x}, width=${box.width})`);
+  await page.screenshot({ path: join(OUT, `${screen.name}-export.png`) });
+  const [exported] = await Promise.all([
+    page.waitForEvent("download"),
+    dialog.getByRole("button", { name: "Download ZIP" }).click(),
+  ]);
+  if (!/^usb-meter-\d{8}-\d{6}\.zip$/.test(exported.suggestedFilename()))
+    fail(`the export is saved as ${exported.suggestedFilename()}`);
+  if (await dialog.isVisible()) fail("the export dialog stays open after the download");
+  const files = await unpack(exported);
+  const readme = files["README.md"] ?? "";
+  const shownName = meterName.replaceAll("\u0000", "");
+  for (const wanted of [
+    `| What was measured | ${purpose} |`,
+    "| Notes from the person who recorded it | 30 W charger \\| 1 m cable |",
+    screen.source === "demo"
+      ? "| Readings | Made up by the page's demo. **This is not a measurement.** |"
+      : `| Meter | ${shownName}, `,
+    "## Summary of the rows",
+    `### ${purpose}`,
+  ])
+    if (!readme.includes(wanted)) fail(`the README of the export lacks "${wanted}"`);
+  if (JSON.stringify(Object.keys(files)) !== JSON.stringify(["README.md", "readings.csv"]))
+    fail(`the export holds ${JSON.stringify(Object.keys(files))}`);
+  const rows = (files["readings.csv"] ?? "").split("\n");
+  // readings keep arriving, so the export may hold a few more rows than the CSV saved before it
+  if (rows[0] !== csv[0] || rows[1] !== csv[1] || rows.length < csv.length)
+    fail(
+      `the CSV in the export differs from Download CSV (${rows.length} against ${csv.length} lines)`,
+    );
+
+  const [skill] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download the Claude skill" }).click(),
+  ]);
+  const skillFiles = await unpack(skill);
+  if (
+    skill.suggestedFilename() !== "usbmeter-analysis.zip" ||
+    !(skillFiles["usbmeter-analysis/SKILL.md"] ?? "").startsWith("---\nname: usbmeter-analysis\n")
+  )
+    fail(`the skill download holds ${JSON.stringify(Object.keys(skillFiles))}`);
 
   // The cursor: pointing at one plot shows every quantity at that moment
   const current = page.getByRole("img", { name: "Current over time" });

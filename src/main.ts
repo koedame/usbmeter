@@ -1,6 +1,7 @@
 import { bluetoothSupported, connectMeter } from "./bluetooth.ts";
 import { Dashboard } from "./dashboard.ts";
 import { startDemo } from "./demo.ts";
+import { purposesFor, recordingArchive, skillArchive } from "./export.ts";
 import { formatCapacity, formatDuration, formatEnergy } from "./format.ts";
 import { History } from "./history.ts";
 import { FrameStream, parseReport, type Reading } from "./protocol.ts";
@@ -40,6 +41,13 @@ const ui = {
   demo: element<HTMLButtonElement>("demo"),
   disconnect: element<HTMLButtonElement>("disconnect"),
   csv: element<HTMLButtonElement>("csv"),
+  aiExport: element<HTMLButtonElement>("ai-export"),
+  exportDialog: element<HTMLDialogElement>("export-dialog"),
+  exportPurpose: element<HTMLSelectElement>("export-purpose"),
+  exportNotes: element<HTMLTextAreaElement>("export-notes"),
+  exportCancel: element<HTMLButtonElement>("export-cancel"),
+  exportDownload: element<HTMLButtonElement>("export-download"),
+  skill: element<HTMLButtonElement>("skill"),
   clear: element<HTMLButtonElement>("clear"),
   range: element("range"),
   energyUnit: element("energy-unit"),
@@ -57,10 +65,27 @@ const supported = bluetoothSupported();
 interface Session {
   source: Source;
   stream: FrameStream;
+  /** Bluetooth name of the meter, once it is connected and when it has one */
+  meterName: string | undefined;
   stop(): void;
 }
 let session: Session | undefined;
 let lastSource: Source | undefined;
+/** Bluetooth names of the meters the recorded readings came from, in the order they arrived */
+let meterNames: string[] = [];
+
+/** The buttons that need a recording to work on */
+function setRecorded(recorded: boolean): void {
+  for (const button of [ui.csv, ui.aiExport, ui.clear]) button.disabled = !recorded;
+}
+
+/** Drops the recording and what was noted about it for an export */
+function forgetRecording(): void {
+  history.clear();
+  meterNames = [];
+  ui.exportNotes.value = "";
+  setRecorded(false);
+}
 
 function setText(id: string, text: string): void {
   element(id).textContent = text;
@@ -124,9 +149,10 @@ function onChunk(mine: Session, chunk: Uint8Array): void {
     const reading = parseReport(frame);
     if (!reading) continue;
     history.add(reading);
+    if (mine.meterName !== undefined && meterNames.at(-1) !== mine.meterName)
+      meterNames.push(mine.meterName);
     render(reading);
-    ui.csv.disabled = false;
-    ui.clear.disabled = false;
+    setRecorded(true);
     redrawChart();
   }
 }
@@ -136,15 +162,13 @@ function begin(source: Source, stop: () => void = () => {}): Session {
   session?.stop();
   if (lastSource !== undefined && lastSource !== source) {
     // nothing of the old source may stay on screen under the name of the new one
-    history.clear();
-    ui.csv.disabled = true;
-    ui.clear.disabled = true;
+    forgetRecording();
     dashboard.clearReadings();
     for (const id of ["capacity", "energy", "duration"]) setText(id, "–");
     redrawChart();
   }
   lastSource = source;
-  session = { source, stream: new FrameStream(), stop };
+  session = { source, stream: new FrameStream(), meterName: undefined, stop };
   return session;
 }
 
@@ -170,6 +194,7 @@ async function connect(anyDevice = false): Promise<void> {
     }
     mine.stop = connection.disconnect;
     if (mine !== session) return connection.disconnect();
+    mine.meterName = connection.name;
     let status = `Reading from ${connection.name ?? "a meter without a Bluetooth name"}.`;
     if (anyDevice && connection.name !== undefined && !connection.knownName)
       status += ` This page does not know that name yet; report it as "${connection.exactName}" through Help so it can be added.`;
@@ -190,17 +215,51 @@ function startDemoMode(): void {
   setState("demo", "Showing made-up readings from a pretend charger. Nothing is connected.");
 }
 
-function download(): void {
-  const blob = new Blob([history.toCsv()], { type: "text/csv;charset=utf-8" });
+/** Hands a file to the browser's downloads */
+function save(blob: Blob, name: string): void {
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/** A file name for the recording as it is now: usb-meter-20260131-235959.<extension> */
+function recordingName(extension: string): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  link.href = url;
-  link.download = `usb-meter-${stamp}.csv`;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  return `usb-meter-${stamp}.${extension}`;
+}
+
+function download(): void {
+  save(new Blob([history.toCsv()], { type: "text/csv;charset=utf-8" }), recordingName("csv"));
+}
+
+/** Opens the export dialog with the purposes that fit the meter the readings came from */
+function askExport(): void {
+  const kind = history.window(undefined).at(-1)?.reading.kind ?? "usb";
+  const chosen = ui.exportPurpose.value;
+  ui.exportPurpose.replaceChildren(...purposesFor(kind).map((label) => new Option(label)));
+  // keep what was picked for the last export when it is still on offer
+  if ([...ui.exportPurpose.options].some((option) => option.value === chosen))
+    ui.exportPurpose.value = chosen;
+  ui.exportDialog.showModal();
+}
+
+function downloadExport(): void {
+  const samples = history.window(undefined);
+  const archive = recordingArchive(history.toCsv(), samples, {
+    kind: samples.at(-1)?.reading.kind ?? "usb",
+    source: lastSource ?? "meter",
+    meterNames,
+    purpose: ui.exportPurpose.value,
+    notes: ui.exportNotes.value,
+    utcOffsetMinutes: -new Date().getTimezoneOffset(),
+  });
+  save(new Blob([archive], { type: "application/zip" }), recordingName("zip"));
+  ui.exportDialog.close();
 }
 
 ui.connect.addEventListener("click", () => void connect());
@@ -212,10 +271,14 @@ ui.disconnect.addEventListener("click", () => {
   setState("idle", "Disconnected. The recorded readings are still below.");
 });
 ui.csv.addEventListener("click", download);
+ui.aiExport.addEventListener("click", askExport);
+ui.exportCancel.addEventListener("click", () => ui.exportDialog.close());
+ui.exportDownload.addEventListener("click", downloadExport);
+ui.skill.addEventListener("click", () =>
+  save(new Blob([skillArchive()], { type: "application/zip" }), "usbmeter-analysis.zip"),
+);
 ui.clear.addEventListener("click", () => {
-  history.clear();
-  ui.csv.disabled = true;
-  ui.clear.disabled = true;
+  forgetRecording();
   redrawChart();
 });
 ui.range.addEventListener("change", redrawChart);

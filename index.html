@@ -6,7 +6,7 @@
     <title>USB Meter Web – Bluetooth USB tester viewer for ATorch UD18, J7-C</title>
     <meta
       name="description"
-      content="See live voltage, current, power and capacity from a Bluetooth USB tester in your browser. Works with ATorch UD18, AT24, J7-C and similar meters. Graph and CSV export, nothing to install."
+      content="See live voltage, current, power and capacity from a Bluetooth USB tester in your browser. Works with ATorch UD18, AT24, J7-C and similar meters. Graphs, CSV export and an export made for AI analysis, nothing to install."
     />
     <link rel="canonical" href="%VITE_SITE_URL%/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -26,7 +26,7 @@
         "@type": "WebApplication",
         "name": "USB Meter Web",
         "url": "%VITE_SITE_URL%/",
-        "description": "Browser-based viewer for Bluetooth USB testers and power meters such as the ATorch UD18, AT24 and J7-C. Live readings, graph and CSV export.",
+        "description": "Browser-based viewer for Bluetooth USB testers and power meters such as the ATorch UD18, AT24 and J7-C. Live readings, graphs, CSV export and an export made for AI analysis.",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Any with Chrome or Edge (Web Bluetooth)",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
@@ -81,6 +81,7 @@
               <label><input type="radio" name="range" value="all" /><span>All</span></label>
             </fieldset>
             <button type="button" class="button" id="csv" disabled>Download CSV</button>
+            <button type="button" class="button" id="ai-export" disabled>Export for AI</button>
             <button type="button" class="button" id="clear" disabled>Clear</button>
           </div>
         </div>
@@ -145,8 +146,8 @@
           ads or no longer updated. This page reads the same Bluetooth stream directly and puts
           every reading on one dashboard: voltage, current, power, temperature and the USB data
           lines each get a graph, all on the same time axis. Move the pointer over any graph to
-          read every value at that moment, and download the whole recording as CSV. There is
-          nothing to install and no account.
+          read every value at that moment, and download the whole recording as CSV or as a ZIP
+          made for AI assistants. There is nothing to install and no account.
         </p>
 
         <h3>How to use it</h3>
@@ -158,6 +159,28 @@
             model name, such as UD18-BLE or AT24-BLE. Readings start right away.
           </li>
         </ol>
+
+        <h3>Analyse a recording with AI</h3>
+        <p>
+          <strong>Export for AI</strong> downloads a ZIP with two files: your readings as CSV
+          and a README that tells an AI assistant what was recorded, what every column means,
+          what a meter like this can and cannot measure, and how to analyse the kind of test
+          you ran: a charging session, a charger, a power bank, a cable or the power draw of a
+          device. Give the ZIP to Claude, ChatGPT or another assistant and ask your question,
+          for example how long the charge took, whether the charger held its voltage, or how
+          much a power bank really delivers. If the assistant does not take ZIP files, unpack
+          it and give it both files.
+        </p>
+        <p>
+          The page still sends nothing anywhere. The file goes only where you put it.
+        </p>
+        <p>
+          For Claude there is also a skill with the same guide, so Claude has it at hand even
+          when it gets only the CSV.
+          <button type="button" class="link" id="skill">Download the Claude skill</button>
+          and add that ZIP to Claude
+          (<a href="https://support.claude.com/en/articles/12512180-using-skills-in-claude">how to add a skill</a>).
+        </p>
 
         <h3>Supported meters</h3>
         <table>
@@ -216,13 +239,42 @@
       </section>
     </main>
 
+    <dialog
+      class="dialog"
+      id="export-dialog"
+      aria-labelledby="export-title"
+      aria-describedby="export-about"
+    >
+      <h2 id="export-title">Export for AI</h2>
+      <p id="export-about">
+        Downloads a ZIP with your readings and a README that explains them, ready to hand to
+        Claude, ChatGPT or another AI assistant. Say what you measured, so it knows what to
+        look for.
+      </p>
+      <label for="export-purpose">What did you measure?</label>
+      <select id="export-purpose"></select>
+      <label for="export-notes">Notes for the assistant <span class="optional">optional</span></label>
+      <textarea
+        id="export-notes"
+        rows="3"
+        maxlength="1000"
+        placeholder="65 W charger, 1 m cable, phone starting at 20 %"
+      ></textarea>
+      <div class="dialog__actions">
+        <button type="button" class="button" id="export-cancel">Cancel</button>
+        <button type="button" class="button button--primary" id="export-download">
+          Download ZIP
+        </button>
+      </div>
+    </dialog>
+
     <div class="tooltip" id="tooltip" aria-hidden="true" hidden></div>
 
     <footer class="footer">
       <p>
         MIT licensed · <a href="https://github.com/koedame/usbmeter">Source on GitHub</a> ·
-        Not affiliated with ATorch or any meter maker. Product names belong to their owners and
-        are used only to say which meters work.
+        Not affiliated with ATorch, any meter maker or any AI provider. Product names belong to
+        their owners and are used only to say what this page works with.
       </p>
     </footer>
     <script type="module" src="/src/main.ts"></script>

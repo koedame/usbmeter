@@ -21,6 +21,9 @@ stream straight from the meter and shows everything it sends, all at once.
 - **Min, average and max** of each reading for the last minute, 10 minutes, hour or the whole
   recording.
 - **CSV export.** Download the recording and keep working on it in a spreadsheet or a script.
+- **Ready for AI analysis.** **Export for AI** packs the recording into a ZIP with a README
+  that tells Claude, ChatGPT or any other assistant what you measured, what every column means
+  and how to analyse it. You ask the question; the explaining is done.
 - **A device list without the clutter.** The Bluetooth list shows meters, not your keyboard,
   mouse and earbuds.
 - **Private by design.** Readings stay in your browser and are never sent anywhere. No cookies,
@@ -43,6 +46,39 @@ time. Close the phone app first. If the meter stays missing, unplug it and plug 
 that does not help, cancel the list and choose **Show all Bluetooth devices**. When the page
 does not know the name of a meter connected that way, it says so; please
 [open an issue](https://github.com/koedame/usbmeter/issues) with that name so it can be added.
+
+## Analyse a recording with AI
+
+A recording can answer questions such as *how long did the charge take, and when did it start to
+taper?*, *does this charger hold its voltage?*, *how much does this power bank really deliver?*
+or *what does my project draw on average?* An AI assistant can work that out, provided it knows
+what it is looking at. **Export for AI** takes care of that:
+
+1. Record, then choose **Export for AI**.
+2. Pick what you measured: charging a device, a charger or power supply, a power bank or
+   battery, a cable, the power draw of a device, or an appliance on an AC meter. Add a note if
+   you like, such as "65 W charger, 1 m cable, phone starting at 20 %".
+3. Give the downloaded ZIP to Claude, ChatGPT or another assistant and ask your question. If it
+   does not take ZIP files, unpack it and give it both files.
+
+The ZIP holds two files:
+
+- `readings.csv`: the readings, the same file **Download CSV** gives.
+- `README.md`: the meter, the time span, your purpose and notes, and a summary (the range of
+  every reading, energy and charge totals, pauses in the recording). Then a guide for the
+  assistant: what each column means, what a meter like this can and cannot measure, how to read
+  the USB data lines, and what to work out for your kind of test.
+
+The page still sends nothing anywhere. The ZIP goes only where you put it.
+
+### Claude skill
+
+The guide is also a [Claude skill](skills/usbmeter-analysis/SKILL.md). With the skill added,
+Claude has the guide at hand even when it gets only the CSV.
+
+- **Claude:** on the page, under **Help**, choose **Download the Claude skill** and add that ZIP
+  as a skill ([how to add a skill](https://support.claude.com/en/articles/12512180-using-skills-in-claude)).
+- **Claude Code:** copy the folder `skills/usbmeter-analysis` into `~/.claude/skills/`.
 
 ## Supported meters
 
@@ -98,6 +134,9 @@ Bluetooth 対応の USB テスター（J7-C・ATorch UD18・AT24 など）の値
 - グラフは全部同じ時間軸。どれかにポインタを置くと、その瞬間の全部の値が出ます
 - 表示している範囲（1 分・10 分・1 時間・全部）の最小・平均・最大
 - 記録は CSV で保存できます
+- **Export for AI** は、記録の CSV と、測ったもの・各列の意味・分析の進め方を書いた README を
+  1 つの ZIP にします。Claude や ChatGPT に渡して質問すれば、説明なしで分析が始まります。
+  同じ内容の Claude 用スキルも `skills/usbmeter-analysis` にあります
 - Bluetooth の一覧にはメーターだけが並びます
 - 値はブラウザの中だけで扱い、どこにも送りません
 
@@ -108,4 +147,5 @@ J7-C は `UC96_BLE` という名前で出ます。iPhone・iPad の Safari は W
 
 ## License
 
-MIT. Not affiliated with ATorch or any meter maker; product names belong to their owners.
+MIT. Not affiliated with ATorch, any meter maker or any AI provider; product names belong to
+their owners.
