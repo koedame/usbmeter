@@ -1,0 +1,9 @@
+# Headers sent with every response in production. Cloudflare reads dist/_headers.
+# `pnpm dev` does not read this file; `pnpm screenshot` serves the build with the same headers.
+# src/security-headers.test.ts pins the content. Loosen a rule only together with its test and the reason.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: accelerometer=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), hid=(), magnetometer=(), microphone=(), midi=(), payment=(), serial=(), usb=()

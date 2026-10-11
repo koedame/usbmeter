@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>USB Meter Web – Bluetooth USB tester viewer for ATorch UD18, J7-C</title>
+    <meta
+      name="description"
+      content="See live voltage, current, power and capacity from a Bluetooth USB tester in your browser. Works with ATorch UD18, AT24, J7-C and similar meters. Graph and CSV export, nothing to install."
+    />
+    <link rel="canonical" href="%VITE_SITE_URL%/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="USB Meter Web" />
+    <meta property="og:title" content="USB Meter Web – Bluetooth USB tester viewer" />
+    <meta
+      property="og:description"
+      content="Live voltage, current, power and capacity from your Bluetooth USB tester, right in the browser. Graph, CSV export, no app to install."
+    />
+    <meta property="og:url" content="%VITE_SITE_URL%/" />
+    <meta property="og:image" content="%VITE_SITE_URL%/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "USB Meter Web",
+        "url": "%VITE_SITE_URL%/",
+        "description": "Browser-based viewer for Bluetooth USB testers and power meters such as the ATorch UD18, AT24 and J7-C. Live readings, graph and CSV export.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Any with Chrome or Edge (Web Bluetooth)",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "inLanguage": "en"
+      }
+    </script>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="brand">
+        <h1>USB Meter Web</h1>
+        <p>Live readings from your Bluetooth USB tester, in the browser</p>
+      </div>
+      <p class="pill" id="pill" data-state="idle">Not connected</p>
+    </header>
+
+    <main class="app">
+      <section class="panel" aria-labelledby="connect-title">
+        <h2 id="connect-title">Connect</h2>
+        <div class="actions">
+          <button type="button" class="button button--primary" id="connect">Connect to meter</button>
+          <button type="button" class="button" id="demo">Try the demo</button>
+          <button type="button" class="button" id="disconnect" hidden>Disconnect</button>
+        </div>
+        <p class="status" id="status" role="status">
+          Turn the meter on, then choose Connect and pick it from the list.
+        </p>
+        <p class="notice" id="unsupported" hidden>
+          This browser cannot talk to Bluetooth devices. Use Chrome or Edge on a computer or an
+          Android phone. The demo works everywhere.
+        </p>
+      </section>
+
+      <section class="panel" aria-labelledby="live-title">
+        <h2 id="live-title">Live readings</h2>
+        <div class="primary-readings">
+          <div class="reading reading--big">
+            <span class="reading__label">Voltage</span>
+            <span class="reading__value"><output id="voltage">–</output><small>V</small></span>
+          </div>
+          <div class="reading reading--big">
+            <span class="reading__label">Current</span>
+            <span class="reading__value"><output id="current">–</output><small>A</small></span>
+          </div>
+          <div class="reading reading--big">
+            <span class="reading__label">Power</span>
+            <span class="reading__value"><output id="power">–</output><small>W</small></span>
+          </div>
+        </div>
+        <div class="secondary-readings">
+          <div class="reading" data-for="usb">
+            <span class="reading__label">Capacity</span>
+            <span class="reading__value"><output id="capacity">–</output><small>mAh</small></span>
+          </div>
+          <div class="reading">
+            <span class="reading__label">Energy</span>
+            <span class="reading__value"><output id="energy">–</output><small id="energy-unit">Wh</small></span>
+          </div>
+          <div class="reading">
+            <span class="reading__label">Time</span>
+            <span class="reading__value"><output id="duration">–</output></span>
+          </div>
+          <div class="reading">
+            <span class="reading__label">Temperature</span>
+            <span class="reading__value"><output id="temperature">–</output><small>°C</small></span>
+          </div>
+          <div class="reading" data-for="usb">
+            <span class="reading__label">D+</span>
+            <span class="reading__value"><output id="dplus">–</output><small>V</small></span>
+          </div>
+          <div class="reading" data-for="usb">
+            <span class="reading__label">D−</span>
+            <span class="reading__value"><output id="dminus">–</output><small>V</small></span>
+          </div>
+          <div class="reading" data-for="ac" hidden>
+            <span class="reading__label">Frequency</span>
+            <span class="reading__value"><output id="frequency">–</output><small>Hz</small></span>
+          </div>
+          <div class="reading" data-for="ac" hidden>
+            <span class="reading__label">Power factor</span>
+            <span class="reading__value"><output id="pf">–</output></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="history-title">
+        <h2 id="history-title">History</h2>
+        <div class="controls">
+          <label class="select">
+            <span>Show</span>
+            <select id="metric">
+              <option value="power">Power</option>
+              <option value="voltage">Voltage</option>
+              <option value="current">Current</option>
+            </select>
+          </label>
+          <label class="select">
+            <span>Range</span>
+            <select id="range">
+              <option value="60000">Last minute</option>
+              <option value="600000">Last 10 minutes</option>
+              <option value="3600000">Last hour</option>
+              <option value="all">Everything</option>
+            </select>
+          </label>
+          <button type="button" class="button" id="csv" disabled>Download CSV</button>
+          <button type="button" class="button" id="clear" disabled>Clear</button>
+        </div>
+        <canvas class="chart" id="chart" role="img" aria-label="Chart of the recorded readings"></canvas>
+      </section>
+
+      <section class="docs" aria-labelledby="about-title">
+        <h2 id="about-title">About this viewer</h2>
+        <p>
+          Many cheap USB testers have Bluetooth, but their phone apps are slow to pair, full of
+          ads or no longer updated. This page reads the same Bluetooth stream directly and shows
+          it on a big screen, with a graph and a CSV download. There is nothing to install and
+          no account.
+        </p>
+
+        <h3>How to use it</h3>
+        <ol>
+          <li>Plug the meter between a charger and the device you want to measure, and switch it on.</li>
+          <li>Open this page in Chrome or Edge and choose <strong>Connect to meter</strong>.</li>
+          <li>Pick the meter in the list (names look like UD18-BLE or AT24-BLE). Readings start right away.</li>
+        </ol>
+
+        <h3>Supported meters</h3>
+        <table>
+          <thead>
+            <tr><th>Meter</th><th>Type</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>J7-C</td><td>USB</td><td>Checked against frames recorded from a real J7-C</td></tr>
+            <tr><td>ATorch UD18 and other USB meters of the same family</td><td>USB</td><td>Checked against published sample packets</td></tr>
+            <tr><td>ATorch AC meters (AC18 and similar)</td><td>AC mains</td><td>Checked against published sample packets</td></tr>
+            <tr><td>ATorch DC meters, AT24 and other models using the same protocol</td><td>DC</td><td>Experimental: the type is detected from the data, but the numbers are not confirmed on a device</td></tr>
+          </tbody>
+        </table>
+        <p>
+          If your meter shows up in the Bluetooth list but no readings appear, please
+          <a href="https://github.com/koedame/usbmeter/issues">open an issue</a> with its name and model.
+        </p>
+
+        <h3>Browser support</h3>
+        <p>
+          The page uses Web Bluetooth, which Chrome and Edge provide on Windows, macOS, Linux,
+          ChromeOS and Android. Firefox and Safari (including every browser on iPhone and iPad,
+          except apps such as Bluefy that add Web Bluetooth) do not support it.
+        </p>
+
+        <h3>Privacy</h3>
+        <p>
+          Everything happens in your browser. The readings are kept in memory while the page is
+          open and are never sent anywhere. There are no cookies, no analytics and no ads.
+        </p>
+
+        <h3>Questions</h3>
+        <dl>
+          <dt>The meter does not appear in the list.</dt>
+          <dd>
+            Disconnect it from any phone app first. These meters accept one Bluetooth connection
+            at a time. On Windows and Linux, make sure Bluetooth is on.
+          </dd>
+          <dt>Why does it say the checksum is not verified?</dt>
+          <dd>
+            Some meters, the J7-C among them, use a different checksum from the ATorch one. The
+            readings are still shown when the frame is otherwise well formed.
+          </dd>
+          <dt>Can it reset the counters or change settings?</dt>
+          <dd>Not yet. The viewer only reads.</dd>
+        </dl>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        MIT licensed · <a href="https://github.com/koedame/usbmeter">Source on GitHub</a> ·
+        Not affiliated with ATorch or any meter maker. Product names belong to their owners and
+        are used only to say which meters work.
+      </p>
+    </footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
