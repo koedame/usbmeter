@@ -785,6 +785,30 @@ a {
   }
 }
 
+/*
+ * The one row of the top bar has the least room here, and a wide system font (DejaVu Sans,
+ * the default of many Linux desktops) with a language of long words (German, Portuguese)
+ * needs more than the normal spacing leaves. Tighter spacing makes room for the text itself.
+ */
+@media (min-width: 900px) and (max-width: 1199px) and (min-height: 640px) {
+  .topbar {
+    gap: 8px;
+    padding-inline: 10px;
+  }
+
+  .actions {
+    gap: 4px;
+  }
+
+  .actions .button {
+    padding-inline: 10px;
+  }
+
+  .pill {
+    padding-inline: 10px;
+  }
+}
+
 /* The export dialog: what only the person knows about the recording, then the download */
 
 .dialog {
