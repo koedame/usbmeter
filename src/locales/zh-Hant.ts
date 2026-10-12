@@ -30,6 +30,7 @@ export const zhHant: Messages = {
   "error.noGatt": "這個裝置不提供 GATT 連線。",
   "error.noSerialService":
     "這個裝置沒有可持續傳送讀數的藍牙序列埠服務（0xFFE0），可能不是受支援的測試儀。",
+  "error.timeout": "測試儀沒有回應。請確認它已通電且在附近，然後再次選擇「連線到測試儀」。",
 
   "hint.notListed":
     "清單中沒有你的測試儀？<b>請將它拔下再重新插上，然後立刻再按一下「連線到測試儀」。</b>有些測試儀只有在剛通電後的短時間內才找得到。還是沒出現？<all>顯示所有藍牙裝置</all>",
@@ -45,6 +46,8 @@ export const zhHant: Messages = {
   "action.csv": "下載 CSV",
   "action.aiExport": "匯出給 AI",
   "action.clear": "清除",
+  "action.clearConfirm":
+    "要清除記錄嗎？記錄只存在於這個分頁，清除後無法復原。如要保留，請先下載 CSV。",
 
   "panels.title": "即時讀數與歷史記錄",
   "metric.voltage": "電壓",

@@ -159,6 +159,32 @@ export class FrameStream {
   }
 }
 
+/** In a row, this many reports with a matching ATorch checksum show that a meter uses it */
+const CHECKSUM_PROOF = 5;
+
+/**
+ * Reads the reports out of a stream of notification chunks. A J7-C does not use the ATorch
+ * checksum, but about one report in 256 matches it by chance, so a single match proves nothing.
+ * Once a meter has matched `CHECKSUM_PROOF` times in a row, a report that does not match is
+ * damaged and is left out; before that, every report is kept and says whether it matched.
+ */
+export class ReportStream {
+  private readonly frames = new FrameStream();
+  private matched = 0;
+
+  push(chunk: Uint8Array): Reading[] {
+    const readings: Reading[] = [];
+    for (const frame of this.frames.push(chunk)) {
+      const reading = parseReport(frame);
+      if (!reading) continue;
+      if (this.matched >= CHECKSUM_PROOF && !reading.checksumOk) continue;
+      this.matched = reading.checksumOk ? this.matched + 1 : 0;
+      readings.push(reading);
+    }
+    return readings;
+  }
+}
+
 /** Builds a report frame with a valid checksum. Used by the demo mode and the tests. */
 export function encodeReport(reading: Reading): Uint8Array {
   const frame = new Uint8Array(REPORT_LENGTH);

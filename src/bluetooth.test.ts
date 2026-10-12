@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
-import { exactName, knownMeterName, METER_FILTERS, shownName } from "./bluetooth.ts";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  CONNECT_TIMEOUT_MS,
+  connectMeter,
+  exactName,
+  knownMeterName,
+  METER_FILTERS,
+  MeterError,
+  shownName,
+} from "./bluetooth.ts";
 
 /** Whether the browser would list a device with this advertised name and these advertised services */
 function listed(name: string, services: number[] = []): boolean {
@@ -81,5 +89,52 @@ describe("exactName", () => {
       "BT-METER-01",
       "電力計",
     ]);
+  });
+});
+
+describe("connectMeter", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  /** A device whose link request never returns, until the page lets go of it, as in Chrome */
+  function silentDevice() {
+    let refuse: (reason: unknown) => void = () => {};
+    const gatt = {
+      connected: false,
+      connect: () =>
+        new Promise<never>((_, reject) => {
+          refuse = reject;
+        }),
+      disconnect: vi.fn(() =>
+        refuse(
+          new DOMException("GATT Server disconnected while attempting to connect.", "NetworkError"),
+        ),
+      ),
+    };
+    const device = { name: "UC96_BLE", gatt, addEventListener() {}, removeEventListener() {} };
+    vi.stubGlobal("navigator", { bluetooth: { requestDevice: async () => device } });
+    return gatt;
+  }
+
+  it("when the meter never answers the link request, gives up after the time allowed and lets go of it", async () => {
+    vi.useFakeTimers();
+    const gatt = silentDevice();
+    const attempt = connectMeter(
+      () => {},
+      () => {},
+    );
+    const outcome = attempt.then(
+      () => "connected",
+      (error: unknown) => error,
+    );
+    await vi.advanceTimersByTimeAsync(CONNECT_TIMEOUT_MS - 1);
+    expect(gatt.disconnect).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    const error = await outcome;
+    expect(error).toBeInstanceOf(MeterError);
+    expect((error as MeterError).code).toBe("timeout");
+    expect(gatt.disconnect).toHaveBeenCalledOnce();
   });
 });

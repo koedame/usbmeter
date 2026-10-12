@@ -34,6 +34,7 @@ import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { strFromU8, unzipSync } from "fflate";
 import { chromium } from "playwright";
+import { CONNECT_TIMEOUT_MS } from "../src/bluetooth.ts";
 import { LOCALES, segments } from "../src/i18n.ts";
 
 const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
@@ -218,11 +219,12 @@ const server = createServer(async (request, response) => {
 /**
  * Replaces navigator.bluetooth with a room of devices: a meter called `meterName` that names
  * `meterServices` in its advertisement and replays `frames` once a second in 20-byte chunks,
- * and some unrelated gadgets. `requestDevice` lists
+ * and some unrelated gadgets. A `silent` meter is picked but then never answers the link request,
+ * until the page drops the link, which fails the request and is counted in `window.linkDropped`. `requestDevice` lists
  * the devices the way the browser does for the given options, records the names in
  * `window.pickerListed`, and "picks" the meter when it is in the list (cancels otherwise).
  */
-function installFakeBluetooth({ frames, meterName, meterServices }) {
+function installFakeBluetooth({ frames, meterName, meterServices, silent = false }) {
   const bytes = frames.map((hex) =>
     Uint8Array.from(hex.match(/../g).map((b) => Number.parseInt(b, 16))),
   );
@@ -252,6 +254,8 @@ function installFakeBluetooth({ frames, meterName, meterServices }) {
       return [characteristic];
     },
   };
+  let refuse;
+  window.linkDropped = 0;
   const server = {
     connected: true,
     async getPrimaryService(uuid) {
@@ -263,8 +267,18 @@ function installFakeBluetooth({ frames, meterName, meterServices }) {
   const device = {
     name: meterName,
     gatt: {
-      async connect() {
-        return server;
+      connected: false,
+      connect() {
+        if (!silent) return Promise.resolve(server);
+        return new Promise((_, reject) => {
+          refuse = reject;
+        });
+      },
+      disconnect() {
+        window.linkDropped += 1;
+        refuse?.(
+          new DOMException("GATT Server disconnected while attempting to connect.", "NetworkError"),
+        );
       },
     },
     addEventListener() {},
@@ -367,6 +381,15 @@ for (const screen of SCREENS) {
     document.addEventListener("securitypolicyviolation", (event) => {
       console.error(`CSP violation: ${event.violatedDirective} ${event.blockedURI}`);
     });
+  });
+  // which plots draw a dashed line: the lines of one plot must differ by more than their colour
+  await page.addInitScript(() => {
+    window.dashedPlots = new Set();
+    const setLineDash = CanvasRenderingContext2D.prototype.setLineDash;
+    CanvasRenderingContext2D.prototype.setLineDash = function (dash) {
+      if (dash.length > 0) window.dashedPlots.add(this.canvas.getAttribute("aria-label"));
+      return setLineDash.call(this, dash);
+    };
   });
   const meterName = screen.meterName ?? J7C_NAME;
   const quantities = screen.quantities ?? USB_QUANTITIES;
@@ -551,6 +574,46 @@ for (const screen of SCREENS) {
     fail("no tooltip appeared when pointing at the Current plot");
   }
 
+  // only the plot that holds two lines has a dashed one
+  const dashed = [...(await page.evaluate(() => [...window.dashedPlots]))];
+  const wantedDashed = quantities.includes("D+") ? ["Data lines over time"] : [];
+  if (JSON.stringify(dashed) !== JSON.stringify(wantedDashed))
+    fail(
+      `the plots with a dashed line are ${JSON.stringify(dashed)}, expected ${JSON.stringify(wantedDashed)}`,
+    );
+
+  // The cursor from the keyboard: a plot takes focus, End goes to the newest reading and Home to
+  // the oldest, and the live region says what the cursor shows
+  await page.mouse.move(0, 0);
+  await tooltip.waitFor({ state: "hidden" });
+  await current.focus();
+  const clock = () => tooltip.locator(".tooltip__time").innerText();
+  await page.keyboard.press("End");
+  const newest = await clock();
+  await page.keyboard.press("Home");
+  const oldest = await clock();
+  if (newest === oldest) fail(`Home and End put the cursor on the same reading, ${newest}`);
+  await page.keyboard.press("End");
+  await page.keyboard.press("PageUp");
+  if ((await clock()) === newest) fail("Page Up did not move the cursor");
+  const told = await tooltip.innerText();
+  for (const quantity of quantities)
+    if (!told.includes(quantity))
+      fail(`the tooltip of the keyboard cursor lacks ${quantity}: ${told}`);
+  const spoken = await page.locator("#cursor-reading").innerText();
+  for (const quantity of quantities)
+    if (!spoken.includes(quantity)) fail(`the live region does not say ${quantity}: ${spoken}`);
+  const tipBox = await tooltip.boundingBox();
+  if (tipBox.x < 0 || tipBox.x + tipBox.width > screen.viewport.width)
+    fail(`the tooltip of the keyboard cursor sticks out of the window (x=${tipBox.x})`);
+  await page.screenshot({ path: join(OUT, `${screen.name}-keyboard.png`) });
+  await page.keyboard.press("Tab"); // the next plot takes the cursor
+  if (!(await tooltip.isVisible())) fail("the next plot did not take the cursor on Tab");
+  await page.evaluate(() => document.activeElement.blur());
+  await tooltip.waitFor({ state: "hidden", timeout: 2000 }).catch(() => {
+    fail("the cursor stays after the plot lost the focus");
+  });
+
   // mobile pages scroll, so capture all of it; on a computer the dashboard is the window
   const fullPage = screen.viewport.width < 900;
   await page.screenshot({ path: join(OUT, `${screen.name}.png`), fullPage });
@@ -609,6 +672,82 @@ function inspectRoom() {
       found.push("the badge covers the name of the page");
   }
   return found;
+}
+
+// A recording lives only in the tab, so the page asks before it is thrown away: by Clear, and
+// by leaving the page. Without a recording it asks nothing.
+{
+  const { page, fail } = await openPage("keeping the recording", "en-US", LAPTOP, "light");
+  const en = LOCALES.find(({ tag }) => tag === "en").messages;
+  const asked = [];
+  let answer = false;
+  page.on("dialog", (dialog) => {
+    asked.push([dialog.type(), dialog.message()]);
+    void (answer ? dialog.accept() : dialog.dismiss());
+  });
+  await page.goto(`http://127.0.0.1:${port}/`);
+  await page.reload();
+  if (asked.length > 0)
+    fail(`a page without a recording asked ${JSON.stringify(asked)} on leaving`);
+  await page.getByRole("button", { name: "Try the demo" }).click();
+  await page.waitForTimeout(2500);
+  await page.getByRole("button", { name: "Disconnect" }).click();
+  const clear = page.getByRole("button", { name: "Clear" });
+  await clear.click(); // answered with "no"
+  if (JSON.stringify(asked) !== JSON.stringify([["confirm", en["action.clearConfirm"]]]))
+    fail(`Clear asked ${JSON.stringify(asked)}`);
+  if (!(await clear.isEnabled()))
+    fail("the recording was cleared although the question was refused");
+  answer = true;
+  if (await clear.isEnabled()) await clear.click();
+  if (await clear.isEnabled())
+    fail("the recording was not cleared after the question was accepted");
+  asked.length = 0;
+  await page.getByRole("button", { name: "Try the demo" }).click();
+  await page.waitForTimeout(2500);
+  await page.reload(); // answered with "leave"
+  if (asked.length !== 1 || asked[0][0] !== "beforeunload")
+    fail(`leaving a page with a recording asked ${JSON.stringify(asked)}`);
+  if (await page.getByRole("button", { name: "Download CSV" }).isEnabled())
+    fail("the page still holds a recording after it was left");
+  await page.close();
+}
+
+// A meter that is picked and then goes quiet: the link request never returns, so the page has
+// to give up by itself and be usable again. The page's clock is driven by the script.
+{
+  const { page, fail } = await openPage("silent meter", "en-US", LAPTOP, "light");
+  const en = LOCALES.find(({ tag }) => tag === "en").messages;
+  await page.clock.install();
+  await page.addInitScript(installFakeBluetooth, {
+    frames: J7C_FRAMES,
+    meterName: "UC96_BLE",
+    meterServices: [0xffe0],
+    silent: true,
+  });
+  await page.goto(`http://127.0.0.1:${port}/`);
+  await page.getByRole("button", { name: "Connect to meter" }).click();
+  await page.clock.runFor(1000); // the picker takes a moment, then the meter is picked
+  if ((await page.locator("#pill").textContent()).trim() !== en["pill.connecting"])
+    fail("the badge does not say that the page is connecting");
+  await page.clock.runFor(CONNECT_TIMEOUT_MS - 2000);
+  if ((await page.locator("#pill").textContent()).trim() !== en["pill.connecting"])
+    fail("the page gave up before the time allowed");
+  await page.clock.runFor(2000);
+  const status = (await page.locator("#status").textContent()).trim();
+  const wanted = shown(en, "status.failed", { reason: en["error.timeout"] });
+  if (status !== wanted) fail(`after the meter stayed silent the status reads "${status}"`);
+  for (const [id, name] of [
+    ["connect", "Connect to meter"],
+    ["connect-any", "Show all Bluetooth devices"],
+    ["demo", "Try the demo"],
+  ])
+    if (!(await page.locator(`#${id}`).isEnabled())) fail(`"${name}" stays disabled`);
+  if ((await page.evaluate(() => window.linkDropped)) !== 1)
+    fail("the page did not drop the link to the meter that stayed silent");
+  await page.screenshot({ path: join(OUT, "silent-meter.png") });
+  console.log(`silent-meter.png  status="${status}"`);
+  await page.close();
 }
 
 // Every translation, in the two windows with the least room

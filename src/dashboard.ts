@@ -11,7 +11,9 @@ import {
   GUTTER,
   nearestIndex,
   type Point,
+  stepIndex,
   timeAt,
+  xAt,
 } from "./chart.ts";
 import type { Sample } from "./history.ts";
 import { t, translate } from "./i18n.ts";
@@ -38,6 +40,7 @@ interface Panel {
 }
 
 const NO_VALUE = "–";
+const DASH = [7, 4];
 
 function clone(templateId: string): HTMLElement {
   const template = document.getElementById(templateId);
@@ -112,6 +115,7 @@ function buildPanel(def: PanelDef): Panel {
 export class Dashboard {
   private readonly panels: Panel[];
   private readonly tooltip: HTMLElement;
+  private readonly announce: HTMLElement;
   private samples: Sample[] = [];
   private times: number[] = [];
   private span: { from: number; to: number } | undefined;
@@ -121,10 +125,21 @@ export class Dashboard {
    * keep arriving and move the time axis under a pointer that stands still.
    */
   private pointer: { canvas: HTMLCanvasElement; x: number; y: number } | undefined;
+  /**
+   * Where the keyboard has put the cursor: the time of the reading it is on, not its index, for
+   * the same reason as the pointer. Used while the pointer is not over a plot.
+   */
+  private keyboard: { canvas: HTMLCanvasElement; time: number } | undefined;
+  /** What the cursor shows, in words, for the live region that tells a screen reader */
+  private spoken = "";
   private frame: number | undefined;
 
-  /** The small panels share `row`; the wide ones are put before it, one per row of their own. */
-  constructor(row: HTMLElement, tooltip: HTMLElement) {
+  /**
+   * The small panels share `row`; the wide ones are put before it, one per row of their own.
+   * `announce` is a live region that is told the readings under the cursor when a key moves it.
+   */
+  constructor(row: HTMLElement, tooltip: HTMLElement, announce: HTMLElement) {
+    this.announce = announce;
     this.tooltip = tooltip;
     this.panels = PANELS.map(buildPanel);
     const resized = new ResizeObserver(() => {
@@ -139,6 +154,23 @@ export class Dashboard {
       panel.canvas.addEventListener("pointerdown", (event) => this.track(event, panel.canvas));
       for (const type of ["pointerleave", "pointercancel"] as const)
         panel.canvas.addEventListener(type, () => this.release());
+      // the cursor can be moved from the keyboard too
+      panel.canvas.tabIndex = 0;
+      panel.canvas.setAttribute(
+        "aria-keyshortcuts",
+        "ArrowLeft ArrowRight PageUp PageDown Home End",
+      );
+      panel.canvas.addEventListener("focus", () => {
+        // a click focuses the plot too, but the pointer is the cursor then
+        if (panel.canvas.matches(":focus-visible")) this.moveWithKey(panel.canvas, "End");
+      });
+      panel.canvas.addEventListener("keydown", (event) => {
+        if (this.moveWithKey(panel.canvas, event.key)) event.preventDefault();
+      });
+      panel.canvas.addEventListener("blur", () => {
+        if (this.keyboard?.canvas === panel.canvas) this.keyboard = undefined;
+        this.schedule();
+      });
     }
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => this.schedule());
     this.retranslate();
@@ -239,6 +271,20 @@ export class Dashboard {
     this.schedule();
   }
 
+  /** Moves the keyboard's cursor as `key` says, starting from the newest reading. False when the key moves nothing. */
+  private moveWithKey(canvas: HTMLCanvasElement, key: string): boolean {
+    const here = this.keyboard
+      ? nearestIndex(this.times, this.keyboard.time)
+      : this.times.length - 1;
+    const next = stepIndex(key, here, this.times.length);
+    const time = next === undefined ? undefined : this.times[next];
+    if (time === undefined) return false;
+    this.keyboard = { canvas, time };
+    this.draw();
+    this.announce.textContent = this.spoken;
+    return true;
+  }
+
   private release(): void {
     this.pointer = undefined;
     this.schedule();
@@ -254,12 +300,18 @@ export class Dashboard {
   }
 
   private draw(): void {
-    // the cursor snaps to the reading closest to the pointer
+    // the cursor snaps to the reading closest to the pointer, or sits on the one the keys chose
     let index = -1;
+    let anchor = this.pointer;
     if (this.pointer && this.span) {
       const box = this.pointer.canvas.getBoundingClientRect();
       const under = timeAt(this.pointer.x - box.left, box.width, this.span.from, this.span.to);
       index = nearestIndex(this.times, under);
+    } else if (this.keyboard && this.span) {
+      index = nearestIndex(this.times, this.keyboard.time);
+      const box = this.keyboard.canvas.getBoundingClientRect();
+      const x = xAt(this.times[index] ?? 0, box.width, this.span.from, this.span.to);
+      anchor = { canvas: this.keyboard.canvas, x: box.left + x, y: box.top + box.height / 2 };
     }
     const sample = this.samples[index];
     const at = this.times[index];
@@ -277,11 +329,13 @@ export class Dashboard {
           points: panel.series[i] ?? [],
           color: colors.getPropertyValue(`--series-${metric.id}`).trim(),
           marker: value !== undefined && at !== undefined ? { t: at, v: value } : undefined,
+          // the second line of a shared plot, so that it differs from the first by more than its colour
+          dash: i > 0 ? DASH : undefined,
         };
       });
       drawPlot(panel.canvas, traces, { ...this.span, axis: panel.axis, cursor: at });
     }
-    this.showTooltip(sample, this.pointer);
+    this.showTooltip(sample, anchor);
   }
 
   /** One tooltip for every plot: the time under the cursor and each quantity at that moment */
@@ -297,6 +351,7 @@ export class Dashboard {
     time.className = "tooltip__time";
     time.textContent = formatClock(sample.at.getTime(), true);
     const rows: HTMLElement[] = [time];
+    const spoken = [time.textContent];
     for (const panel of this.panels) {
       if (panel.root.hidden) continue;
       for (const metric of panel.metrics) {
@@ -310,8 +365,10 @@ export class Dashboard {
         );
         part(row, ".tooltip__unit").textContent = metric.unit;
         rows.push(row);
+        spoken.push(`${metric.label()} ${part(row, ".tooltip__value").textContent} ${metric.unit}`);
       }
     }
+    this.spoken = spoken.join(", ");
     this.tooltip.replaceChildren(...rows);
     this.tooltip.hidden = false;
 

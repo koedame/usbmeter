@@ -30,6 +30,7 @@ export const zhHans: Messages = {
   "error.noGatt": "此设备不提供 GATT 连接。",
   "error.noSerialService":
     "此设备没有用于传输读数的蓝牙串口服务（0xFFE0）。它可能不是受支持的测试仪。",
+  "error.timeout": "测试仪没有响应。请确认它已通电且在附近，然后再次选择“连接测试仪”。",
 
   "hint.notListed":
     "列表中没有测试仪？<b>请将它拔下再重新插上，然后立即再次点击“连接测试仪”。</b>有些测试仪只有在通电后的短时间内才能被发现。仍然找不到？<all>显示所有蓝牙设备</all>",
@@ -45,6 +46,7 @@ export const zhHans: Messages = {
   "action.csv": "下载 CSV",
   "action.aiExport": "导出给 AI",
   "action.clear": "清空",
+  "action.clearConfirm": "清除记录？记录只存在于此标签页，清除后无法恢复。如需保留，请先下载 CSV。",
 
   "panels.title": "实时读数与历史记录",
   "metric.voltage": "电压",

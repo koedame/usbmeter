@@ -150,6 +150,8 @@ export interface Trace {
   color: string;
   /** where the cursor sits on this trace, when the pointer is over a plot */
   marker: Point | undefined;
+  /** Dash and gap lengths in pixels, for the line of a trace that shares its plot and must not be told apart by colour alone */
+  dash?: number[] | undefined;
 }
 
 export interface PlotView {
@@ -197,6 +199,34 @@ export function timeAt(x: number, width: number, from: number, to: number): numb
   const span = width - GUTTER.left - GUTTER.right;
   const ratio = Math.min(1, Math.max(0, (x - GUTTER.left) / span));
   return from + ratio * (to - from);
+}
+
+/** Where a plot `width` pixels wide draws the time `t`: the way back from `timeAt`, kept inside the plot area */
+export function xAt(t: number, width: number, from: number, to: number): number {
+  const span = width - GUTTER.left - GUTTER.right;
+  const ratio = Math.min(1, Math.max(0, (t - from) / (to - from)));
+  return GUTTER.left + ratio * span;
+}
+
+/** Readings a cursor moves with Page Up and Page Down */
+const PAGE = 10;
+
+/**
+ * Where a key moves the cursor, as an index into `count` readings: undefined for a key that
+ * does not move it. Left and right step one reading, Page Up and Down ten, Home and End go to
+ * the oldest and the newest on screen.
+ */
+export function stepIndex(key: string, index: number, count: number): number | undefined {
+  const last = count - 1;
+  const moved = {
+    ArrowLeft: index - 1,
+    ArrowRight: index + 1,
+    PageUp: index - PAGE,
+    PageDown: index + PAGE,
+    Home: 0,
+    End: last,
+  }[key];
+  return moved === undefined ? undefined : Math.min(last, Math.max(0, moved));
 }
 
 export function drawEmpty(canvas: HTMLCanvasElement, message: string): void {
@@ -280,9 +310,11 @@ export function drawPlot(canvas: HTMLCanvasElement, traces: Trace[], view: PlotV
         ctx.fill(area);
       }
       ctx.strokeStyle = trace.color;
+      ctx.setLineDash(trace.dash ?? []);
       ctx.stroke(line);
     }
   }
+  ctx.setLineDash([]);
 
   const ring = surface.color("--plot");
   const dot = (point: Point, color: string) => {

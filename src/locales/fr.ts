@@ -33,6 +33,8 @@ export const fr: Messages = {
   "error.noGatt": "Cet appareil ne propose pas de connexion GATT.",
   "error.noSerialService":
     "Cet appareil n’a pas de service série Bluetooth (0xFFE0) pour transmettre les mesures en continu. Ce n’est peut-être pas un testeur compatible.",
+  "error.timeout":
+    "Le testeur n’a pas répondu. Vérifiez qu’il est alimenté et proche, puis choisissez de nouveau Connecter le testeur.",
 
   "hint.notListed":
     "Le testeur n’est pas dans la liste ? <b>Débranchez-le, rebranchez-le, puis sélectionnez de nouveau « Connecter le testeur » sans attendre.</b> Certains testeurs ne restent détectables que quelques instants après leur mise sous tension. Toujours introuvable ? <all>Afficher tous les appareils Bluetooth</all>",
@@ -49,6 +51,8 @@ export const fr: Messages = {
   "action.csv": "Télécharger le CSV",
   "action.aiExport": "Exporter pour l’IA",
   "action.clear": "Effacer",
+  "action.clearConfirm":
+    "Effacer l’enregistrement ? Il n’existe que dans cet onglet et ne peut pas être récupéré. Téléchargez d’abord le CSV pour le conserver.",
 
   "panels.title": "Mesures en direct et historique",
   "metric.voltage": "Tension",

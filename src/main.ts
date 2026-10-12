@@ -6,7 +6,7 @@ import { formatCapacity, formatDuration, formatEnergy } from "./format.ts";
 import { History } from "./history.ts";
 import { LOCALES, locale, matchLocale, setLocale, startLocale, t, translate } from "./i18n.ts";
 import type { MessageKey } from "./locales/en.ts";
-import { FrameStream, parseReport, type Reading } from "./protocol.ts";
+import { type Reading, ReportStream } from "./protocol.ts";
 
 type State = "idle" | "connecting" | "live" | "demo" | "error";
 type Source = "meter" | "demo";
@@ -53,7 +53,11 @@ const ui = {
 setLocale(startLocale(location.search, navigator.languages));
 
 const history = new History();
-const dashboard = new Dashboard(element("panels-row"), element("tooltip"));
+const dashboard = new Dashboard(
+  element("panels-row"),
+  element("tooltip"),
+  element("cursor-reading"),
+);
 const supported = bluetoothSupported();
 
 /**
@@ -63,7 +67,7 @@ const supported = bluetoothSupported();
  */
 interface Session {
   source: Source;
-  stream: FrameStream;
+  stream: ReportStream;
   /** Bluetooth name of the meter once it is connected, "" when it has none */
   meterName: string | undefined;
   stop(): void;
@@ -157,9 +161,7 @@ function redrawChart(): void {
 
 function onChunk(mine: Session, chunk: Uint8Array): void {
   if (mine !== session) return;
-  for (const frame of mine.stream.push(chunk)) {
-    const reading = parseReport(frame);
-    if (!reading) continue;
+  for (const reading of mine.stream.push(chunk)) {
     history.add(reading);
     if (mine.meterName !== undefined && meterNames.at(-1) !== mine.meterName)
       meterNames.push(mine.meterName);
@@ -180,7 +182,7 @@ function begin(source: Source, stop: () => void = () => {}): Session {
     redrawChart();
   }
   lastSource = source;
-  session = { source, stream: new FrameStream(), meterName: undefined, stop };
+  session = { source, stream: new ReportStream(), meterName: undefined, stop };
   return session;
 }
 
@@ -306,10 +308,15 @@ ui.skill.addEventListener("click", () =>
   save(new Blob([skillArchive()], { type: "application/zip" }), "usbmeter-analysis.zip"),
 );
 ui.clear.addEventListener("click", () => {
+  if (!window.confirm(t("action.clearConfirm"))) return;
   forgetRecording();
   redrawChart();
 });
 ui.range.addEventListener("change", redrawChart);
+// the recording is kept in memory only, so leaving the page loses it
+window.addEventListener("beforeunload", (event) => {
+  if (history.length > 0) event.preventDefault();
+});
 
 /** Puts everything on the page into the language that is set */
 function showLanguage(): void {

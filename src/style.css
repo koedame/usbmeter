@@ -459,6 +459,11 @@ a {
   --series: var(--series-pf);
 }
 
+/* The second line of a plot is dashed, so the key is too */
+[data-metric="dminus"] .key {
+  background: repeating-linear-gradient(90deg, var(--series) 0 5px, transparent 5px 8px);
+}
+
 .panel__readouts {
   display: flex;
   flex-wrap: wrap;
@@ -554,6 +559,11 @@ a {
   font-family: var(--mono); /* read by src/chart.ts for the axis labels */
   touch-action: pan-y; /* a sideways drag moves the cursor, an up-down drag still scrolls the page */
   cursor: crosshair;
+}
+
+/* the plot fills its box, so a ring outside it would be cut off */
+.panel__plot canvas:focus-visible {
+  outline-offset: -2px;
 }
 
 .panel--totals {
@@ -772,6 +782,30 @@ a {
 @media (max-width: 1199px) {
   .brand {
     flex: none;
+  }
+}
+
+/*
+ * The one row of the top bar has the least room here, and a wide system font (DejaVu Sans,
+ * the default of many Linux desktops) with a language of long words (German, Portuguese)
+ * needs more than the normal spacing leaves. Tighter spacing makes room for the text itself.
+ */
+@media (min-width: 900px) and (max-width: 1199px) and (min-height: 640px) {
+  .topbar {
+    gap: 8px;
+    padding-inline: 10px;
+  }
+
+  .actions {
+    gap: 4px;
+  }
+
+  .actions .button {
+    padding-inline: 10px;
+  }
+
+  .pill {
+    padding-inline: 10px;
   }
 }
 

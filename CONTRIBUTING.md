@@ -17,7 +17,7 @@ You need Node 22.18 or later and pnpm.
 ```
 pnpm install
 pnpm dev          # dev server on http://localhost:5173
-pnpm check        # lint, typecheck, tests, build (what CI runs)
+pnpm check        # lint, typecheck, tests, build (the `check` job of CI)
 ```
 
 Web Bluetooth needs a secure context; `localhost` counts as one.
@@ -43,6 +43,8 @@ emulated Bluetooth adapter with meters and unrelated gadgets around it and reads
 the real device picker lists. Any console error or CSP violation fails the run. It is the
 closest thing to a hardware test that does not need a meter, so look at the pictures after a
 change to the page.
+CI runs the same check in its `browser` job on every pull request and keeps the pictures of a
+failed run for a week.
 
 Layout and rendering are checked there; logic is covered by unit tests next to the code
 (`src/*.test.ts`). Test names read "when ..., ...", so the list of names doubles as the spec.

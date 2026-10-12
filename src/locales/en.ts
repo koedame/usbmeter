@@ -36,6 +36,8 @@ export const en = {
   "error.noGatt": "This device does not offer a GATT connection.",
   "error.noSerialService":
     "This device has no serial-over-Bluetooth service (0xFFE0) that streams readings. It may not be a supported meter.",
+  "error.timeout":
+    "The meter did not answer. Check that it is powered and close, then choose Connect to meter again.",
 
   "hint.notListed":
     "Meter not in the list? <b>Unplug it, plug it back in and choose Connect again right away.</b> Some meters can only be found shortly after they get power. Still missing? <all>Show all Bluetooth devices</all>",
@@ -52,6 +54,8 @@ export const en = {
   "action.csv": "Download CSV",
   "action.aiExport": "Export for AI",
   "action.clear": "Clear",
+  "action.clearConfirm":
+    "Clear the recording? It exists only in this tab and cannot be brought back. Download the CSV first to keep it.",
 
   "panels.title": "Live readings and history",
   "metric.voltage": "Voltage",

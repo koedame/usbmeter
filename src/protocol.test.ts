@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { checksumOf, encodeReport, FrameStream, hexToBytes, parseReport } from "./protocol.ts";
+import {
+  checksumOf,
+  encodeReport,
+  FrameStream,
+  hexToBytes,
+  parseReport,
+  ReportStream,
+} from "./protocol.ts";
 
 // Frames recorded from a J7-C and posted with the on-screen values in the Arduino forum thread
 // "USB Digital Tester (BT) Protocol", January 2022:
@@ -172,5 +179,51 @@ describe("FrameStream after a lost notification", () => {
     const stream = new FrameStream();
     expect(stream.push(frame.slice(0, 20))).toEqual([]);
     expect(stream.push(frame)).toEqual([frame]);
+  });
+});
+
+describe("ReportStream", () => {
+  const good = hexToBytes(UD18_IDLE);
+  const damaged = Uint8Array.from(good);
+  damaged[5] = (damaged[5] ?? 0) ^ 0x10; // one bit of the voltage flipped in the air, checksum as it was
+
+  const pushAll = (stream: ReportStream, frames: Uint8Array[]) =>
+    frames.flatMap((frame) => stream.push(frame));
+
+  it("when a meter has not shown that it uses the ATorch checksum, keeps every report", () => {
+    const stream = new ReportStream();
+    const readings = pushAll(stream, [damaged, good, damaged]);
+    expect(readings.map((reading) => reading.checksumOk)).toEqual([false, true, false]);
+  });
+
+  it("when the checksum of a meter has matched report after report, drops a report that does not match", () => {
+    const stream = new ReportStream();
+    expect(pushAll(stream, Array(5).fill(good))).toHaveLength(5);
+    expect(pushAll(stream, [damaged])).toEqual([]);
+    expect(pushAll(stream, [good])).toHaveLength(1);
+  });
+
+  it("when a J7-C's checksum happens to match a few times in a row, still keeps all its reports", () => {
+    const stream = new ReportStream();
+    const j7c = J7C_FRAMES.map(hexToBytes);
+    const lucky = Uint8Array.from(j7c[0] ?? []);
+    lucky[35] = checksumOf(lucky);
+    const frames = [
+      lucky,
+      lucky,
+      j7c[1] ?? lucky,
+      lucky,
+      lucky,
+      lucky,
+      j7c[2] ?? lucky,
+      j7c[3] ?? lucky,
+    ];
+    expect(pushAll(stream, frames)).toHaveLength(frames.length);
+  });
+
+  it("when a report arrives in two notifications, reads it once", () => {
+    const stream = new ReportStream();
+    expect(stream.push(good.slice(0, 20))).toEqual([]);
+    expect(stream.push(good.slice(20))).toHaveLength(1);
   });
 });

@@ -30,6 +30,8 @@ export const ja: Messages = {
   "error.noGatt": "このデバイスは GATT 接続に対応していません。",
   "error.noSerialService":
     "このデバイスには、測定値を送信する Bluetooth シリアル通信サービス（0xFFE0）がありません。対応メーターではない可能性があります。",
+  "error.timeout":
+    "メーターから応答がありませんでした。電源が入っていて近くにあることを確かめてから、もう一度「メーターに接続」を選んでください。",
 
   "hint.notListed":
     "メーターが一覧にありませんか？<b>いったん抜いて挿し直し、すぐにもう一度「メーターに接続」を押してください。</b>電源が入った直後しか見つからないメーターもあります。それでも見つかりませんか？<all>すべての Bluetooth デバイスを表示</all>",
@@ -46,6 +48,8 @@ export const ja: Messages = {
   "action.csv": "CSV をダウンロード",
   "action.aiExport": "AI 用にエクスポート",
   "action.clear": "クリア",
+  "action.clearConfirm":
+    "記録を消去しますか？ 記録はこのタブの中にしかなく、元に戻せません。残したいときは先に CSV をダウンロードしてください。",
 
   "panels.title": "現在の測定値と履歴",
   "metric.voltage": "電圧",

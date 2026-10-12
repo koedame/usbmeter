@@ -31,6 +31,8 @@ export const ptBR: Messages = {
   "error.noGatt": "Este dispositivo não oferece conexão GATT.",
   "error.noSerialService":
     "Este dispositivo não tem um serviço serial por Bluetooth (0xFFE0) que transmita leituras. Talvez não seja um medidor compatível.",
+  "error.timeout":
+    "O medidor não respondeu. Verifique se está ligado e por perto e escolha Conectar ao medidor de novo.",
 
   "hint.notListed":
     "O medidor não aparece na lista? <b>Retire-o da porta USB, recoloque-o e volte a selecionar “Conectar ao medidor” imediatamente.</b> Alguns medidores só podem ser encontrados logo depois de receberem energia. Ainda não aparece? <all>Mostrar todos os dispositivos Bluetooth</all>",
@@ -47,6 +49,8 @@ export const ptBR: Messages = {
   "action.csv": "Baixar CSV",
   "action.aiExport": "Exportar para IA",
   "action.clear": "Limpar",
+  "action.clearConfirm":
+    "Apagar a gravação? Ela existe só nesta aba e não pode ser recuperada. Baixe o CSV antes para guardá-la.",
 
   "panels.title": "Leituras em tempo real e histórico",
   "metric.voltage": "Tensão",

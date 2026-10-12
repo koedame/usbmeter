@@ -7,8 +7,10 @@ import {
   type Point,
   splitAtGaps,
   stepDecimals,
+  stepIndex,
   timeAt,
   timeTicks,
+  xAt,
 } from "./chart.ts";
 
 describe("niceStep", () => {
@@ -134,6 +136,42 @@ describe("timeAt", () => {
   it("when the pointer is over the axis labels beside the plot area, stops at the edge of the time on screen", () => {
     expect(timeAt(10, 1066, 10_000, 70_000)).toBe(10_000);
     expect(timeAt(1060, 1066, 10_000, 70_000)).toBe(70_000);
+  });
+});
+
+describe("xAt", () => {
+  it("when asked where a time is, gives the position timeAt turns back into that time", () => {
+    for (const t of [10_000, 25_000, 70_000])
+      expect(timeAt(xAt(t, 1066, 10_000, 70_000), 1066, 10_000, 70_000)).toBe(t);
+  });
+
+  it("when the time is outside the time on screen, stops at the edge of the plot area", () => {
+    expect(xAt(0, 1066, 10_000, 70_000)).toBe(52);
+    expect(xAt(99_000, 1066, 10_000, 70_000)).toBe(1052);
+  });
+});
+
+describe("stepIndex", () => {
+  it("when an arrow key is pressed, moves one reading, and stays within the recording", () => {
+    expect(stepIndex("ArrowLeft", 5, 20)).toBe(4);
+    expect(stepIndex("ArrowRight", 5, 20)).toBe(6);
+    expect(stepIndex("ArrowLeft", 0, 20)).toBe(0);
+    expect(stepIndex("ArrowRight", 19, 20)).toBe(19);
+  });
+
+  it("when Page Up or Page Down is pressed, moves ten readings", () => {
+    expect(stepIndex("PageUp", 15, 20)).toBe(5);
+    expect(stepIndex("PageDown", 15, 20)).toBe(19);
+  });
+
+  it("when Home or End is pressed, goes to the oldest or the newest reading", () => {
+    expect(stepIndex("Home", 7, 20)).toBe(0);
+    expect(stepIndex("End", 7, 20)).toBe(19);
+  });
+
+  it("when any other key is pressed, leaves the cursor where it is", () => {
+    expect(stepIndex("a", 7, 20)).toBeUndefined();
+    expect(stepIndex("Tab", 7, 20)).toBeUndefined();
   });
 });
 

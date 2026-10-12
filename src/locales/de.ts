@@ -34,6 +34,8 @@ export const de: Messages = {
   "error.noGatt": "Dieses Gerät bietet keine GATT-Verbindung an.",
   "error.noSerialService":
     "Dieses Gerät hat keinen seriellen Bluetooth-Dienst (0xFFE0), der Messwerte überträgt. Möglicherweise ist es kein unterstütztes Messgerät.",
+  "error.timeout":
+    "Das Messgerät hat nicht geantwortet. Prüfen Sie, ob es eingeschaltet und in der Nähe ist, und wählen Sie dann erneut „Messgerät verbinden“.",
 
   "hint.notListed":
     "Messgerät nicht in der Liste? <b>Ziehen Sie es ab, stecken Sie es wieder ein und wählen Sie sofort erneut „Messgerät verbinden“.</b> Manche Messgeräte lassen sich nur finden, kurz nachdem sie Strom bekommen haben. Fehlt es immer noch? <all>Alle Bluetooth-Geräte anzeigen</all>",
@@ -50,6 +52,8 @@ export const de: Messages = {
   "action.csv": "CSV herunterladen",
   "action.aiExport": "Export für KI",
   "action.clear": "Löschen",
+  "action.clearConfirm":
+    "Aufzeichnung löschen? Sie existiert nur in diesem Tab und lässt sich nicht wiederherstellen. Laden Sie vorher die CSV herunter, um sie zu behalten.",
 
   "panels.title": "Live-Messwerte und Verlauf",
   "metric.voltage": "Spannung",
