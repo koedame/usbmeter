@@ -50,6 +50,8 @@ export const ru: Messages = {
   "action.csv": "Скачать CSV",
   "action.aiExport": "Экспорт для ИИ",
   "action.clear": "Очистить",
+  "action.clearConfirm":
+    "Очистить запись? Она существует только в этой вкладке, и вернуть её нельзя. Чтобы сохранить, сначала скачайте CSV.",
 
   "panels.title": "Текущие показания и история",
   "metric.voltage": "Напряжение",

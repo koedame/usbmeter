@@ -49,6 +49,8 @@ export const ko: Messages = {
   "action.csv": "CSV 다운로드",
   "action.aiExport": "AI용 내보내기",
   "action.clear": "지우기",
+  "action.clearConfirm":
+    "기록을 지울까요? 기록은 이 탭에만 있으며 되돌릴 수 없습니다. 보관하려면 먼저 CSV를 내려받으세요.",
 
   "panels.title": "실시간 측정값 및 기록",
   "metric.voltage": "전압",

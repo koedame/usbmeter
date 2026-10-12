@@ -304,10 +304,15 @@ ui.skill.addEventListener("click", () =>
   save(new Blob([skillArchive()], { type: "application/zip" }), "usbmeter-analysis.zip"),
 );
 ui.clear.addEventListener("click", () => {
+  if (!window.confirm(t("action.clearConfirm"))) return;
   forgetRecording();
   redrawChart();
 });
 ui.range.addEventListener("change", redrawChart);
+// the recording is kept in memory only, so leaving the page loses it
+window.addEventListener("beforeunload", (event) => {
+  if (history.length > 0) event.preventDefault();
+});
 
 /** Puts everything on the page into the language that is set */
 function showLanguage(): void {

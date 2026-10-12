@@ -49,6 +49,8 @@ export const it: Messages = {
   "action.csv": "Scarica CSV",
   "action.aiExport": "Esporta per l’IA",
   "action.clear": "Cancella",
+  "action.clearConfirm":
+    "Cancellare la registrazione? Esiste solo in questa scheda e non si può recuperare. Scarica prima il CSV per conservarla.",
 
   "panels.title": "Letture in tempo reale e storico",
   "metric.voltage": "Tensione",

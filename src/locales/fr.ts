@@ -51,6 +51,8 @@ export const fr: Messages = {
   "action.csv": "Télécharger le CSV",
   "action.aiExport": "Exporter pour l’IA",
   "action.clear": "Effacer",
+  "action.clearConfirm":
+    "Effacer l’enregistrement ? Il n’existe que dans cet onglet et ne peut pas être récupéré. Téléchargez d’abord le CSV pour le conserver.",
 
   "panels.title": "Mesures en direct et historique",
   "metric.voltage": "Tension",

@@ -46,6 +46,8 @@ export const zhHant: Messages = {
   "action.csv": "下載 CSV",
   "action.aiExport": "匯出給 AI",
   "action.clear": "清除",
+  "action.clearConfirm":
+    "要清除記錄嗎？記錄只存在於這個分頁，清除後無法復原。如要保留，請先下載 CSV。",
 
   "panels.title": "即時讀數與歷史記錄",
   "metric.voltage": "電壓",

@@ -48,6 +48,8 @@ export const ja: Messages = {
   "action.csv": "CSV をダウンロード",
   "action.aiExport": "AI 用にエクスポート",
   "action.clear": "クリア",
+  "action.clearConfirm":
+    "記録を消去しますか？ 記録はこのタブの中にしかなく、元に戻せません。残したいときは先に CSV をダウンロードしてください。",
 
   "panels.title": "現在の測定値と履歴",
   "metric.voltage": "電圧",

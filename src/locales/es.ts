@@ -49,6 +49,8 @@ export const es: Messages = {
   "action.csv": "Descargar CSV",
   "action.aiExport": "Exportar para IA",
   "action.clear": "Borrar",
+  "action.clearConfirm":
+    "¿Borrar la grabación? Solo existe en esta pestaña y no se puede recuperar. Descarga antes el CSV si quieres conservarla.",
 
   "panels.title": "Lecturas en tiempo real e historial",
   "metric.voltage": "Voltaje",

@@ -54,6 +54,8 @@ export const en = {
   "action.csv": "Download CSV",
   "action.aiExport": "Export for AI",
   "action.clear": "Clear",
+  "action.clearConfirm":
+    "Clear the recording? It exists only in this tab and cannot be brought back. Download the CSV first to keep it.",
 
   "panels.title": "Live readings and history",
   "metric.voltage": "Voltage",

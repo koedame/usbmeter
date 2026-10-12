@@ -625,6 +625,45 @@ function inspectRoom() {
   return found;
 }
 
+// A recording lives only in the tab, so the page asks before it is thrown away: by Clear, and
+// by leaving the page. Without a recording it asks nothing.
+{
+  const { page, fail } = await openPage("keeping the recording", "en-US", LAPTOP, "light");
+  const en = LOCALES.find(({ tag }) => tag === "en").messages;
+  const asked = [];
+  let answer = false;
+  page.on("dialog", (dialog) => {
+    asked.push([dialog.type(), dialog.message()]);
+    void (answer ? dialog.accept() : dialog.dismiss());
+  });
+  await page.goto(`http://127.0.0.1:${port}/`);
+  await page.reload();
+  if (asked.length > 0)
+    fail(`a page without a recording asked ${JSON.stringify(asked)} on leaving`);
+  await page.getByRole("button", { name: "Try the demo" }).click();
+  await page.waitForTimeout(2500);
+  await page.getByRole("button", { name: "Disconnect" }).click();
+  const clear = page.getByRole("button", { name: "Clear" });
+  await clear.click(); // answered with "no"
+  if (JSON.stringify(asked) !== JSON.stringify([["confirm", en["action.clearConfirm"]]]))
+    fail(`Clear asked ${JSON.stringify(asked)}`);
+  if (!(await clear.isEnabled()))
+    fail("the recording was cleared although the question was refused");
+  answer = true;
+  if (await clear.isEnabled()) await clear.click();
+  if (await clear.isEnabled())
+    fail("the recording was not cleared after the question was accepted");
+  asked.length = 0;
+  await page.getByRole("button", { name: "Try the demo" }).click();
+  await page.waitForTimeout(2500);
+  await page.reload(); // answered with "leave"
+  if (asked.length !== 1 || asked[0][0] !== "beforeunload")
+    fail(`leaving a page with a recording asked ${JSON.stringify(asked)}`);
+  if (await page.getByRole("button", { name: "Download CSV" }).isEnabled())
+    fail("the page still holds a recording after it was left");
+  await page.close();
+}
+
 // A meter that is picked and then goes quiet: the link request never returns, so the page has
 // to give up by itself and be usable again. The page's clock is driven by the script.
 {

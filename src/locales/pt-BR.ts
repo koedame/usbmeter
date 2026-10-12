@@ -49,6 +49,8 @@ export const ptBR: Messages = {
   "action.csv": "Baixar CSV",
   "action.aiExport": "Exportar para IA",
   "action.clear": "Limpar",
+  "action.clearConfirm":
+    "Apagar a gravação? Ela existe só nesta aba e não pode ser recuperada. Baixe o CSV antes para guardá-la.",
 
   "panels.title": "Leituras em tempo real e histórico",
   "metric.voltage": "Tensão",

@@ -52,6 +52,8 @@ export const de: Messages = {
   "action.csv": "CSV herunterladen",
   "action.aiExport": "Export für KI",
   "action.clear": "Löschen",
+  "action.clearConfirm":
+    "Aufzeichnung löschen? Sie existiert nur in diesem Tab und lässt sich nicht wiederherstellen. Laden Sie vorher die CSV herunter, um sie zu behalten.",
 
   "panels.title": "Live-Messwerte und Verlauf",
   "metric.voltage": "Spannung",

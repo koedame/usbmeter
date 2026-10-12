@@ -46,6 +46,7 @@ export const zhHans: Messages = {
   "action.csv": "下载 CSV",
   "action.aiExport": "导出给 AI",
   "action.clear": "清空",
+  "action.clearConfirm": "清除记录？记录只存在于此标签页，清除后无法恢复。如需保留，请先下载 CSV。",
 
   "panels.title": "实时读数与历史记录",
   "metric.voltage": "电压",
