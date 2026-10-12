@@ -53,7 +53,11 @@ const ui = {
 setLocale(startLocale(location.search, navigator.languages));
 
 const history = new History();
-const dashboard = new Dashboard(element("panels-row"), element("tooltip"));
+const dashboard = new Dashboard(
+  element("panels-row"),
+  element("tooltip"),
+  element("cursor-reading"),
+);
 const supported = bluetoothSupported();
 
 /**

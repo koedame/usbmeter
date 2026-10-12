@@ -382,6 +382,15 @@ for (const screen of SCREENS) {
       console.error(`CSP violation: ${event.violatedDirective} ${event.blockedURI}`);
     });
   });
+  // which plots draw a dashed line: the lines of one plot must differ by more than their colour
+  await page.addInitScript(() => {
+    window.dashedPlots = new Set();
+    const setLineDash = CanvasRenderingContext2D.prototype.setLineDash;
+    CanvasRenderingContext2D.prototype.setLineDash = function (dash) {
+      if (dash.length > 0) window.dashedPlots.add(this.canvas.getAttribute("aria-label"));
+      return setLineDash.call(this, dash);
+    };
+  });
   const meterName = screen.meterName ?? J7C_NAME;
   const quantities = screen.quantities ?? USB_QUANTITIES;
   if (screen.source === "fake-ble")
@@ -564,6 +573,46 @@ for (const screen of SCREENS) {
   } else {
     fail("no tooltip appeared when pointing at the Current plot");
   }
+
+  // only the plot that holds two lines has a dashed one
+  const dashed = [...(await page.evaluate(() => [...window.dashedPlots]))];
+  const wantedDashed = quantities.includes("D+") ? ["Data lines over time"] : [];
+  if (JSON.stringify(dashed) !== JSON.stringify(wantedDashed))
+    fail(
+      `the plots with a dashed line are ${JSON.stringify(dashed)}, expected ${JSON.stringify(wantedDashed)}`,
+    );
+
+  // The cursor from the keyboard: a plot takes focus, End goes to the newest reading and Home to
+  // the oldest, and the live region says what the cursor shows
+  await page.mouse.move(0, 0);
+  await tooltip.waitFor({ state: "hidden" });
+  await current.focus();
+  const clock = () => tooltip.locator(".tooltip__time").innerText();
+  await page.keyboard.press("End");
+  const newest = await clock();
+  await page.keyboard.press("Home");
+  const oldest = await clock();
+  if (newest === oldest) fail(`Home and End put the cursor on the same reading, ${newest}`);
+  await page.keyboard.press("End");
+  await page.keyboard.press("PageUp");
+  if ((await clock()) === newest) fail("Page Up did not move the cursor");
+  const told = await tooltip.innerText();
+  for (const quantity of quantities)
+    if (!told.includes(quantity))
+      fail(`the tooltip of the keyboard cursor lacks ${quantity}: ${told}`);
+  const spoken = await page.locator("#cursor-reading").innerText();
+  for (const quantity of quantities)
+    if (!spoken.includes(quantity)) fail(`the live region does not say ${quantity}: ${spoken}`);
+  const tipBox = await tooltip.boundingBox();
+  if (tipBox.x < 0 || tipBox.x + tipBox.width > screen.viewport.width)
+    fail(`the tooltip of the keyboard cursor sticks out of the window (x=${tipBox.x})`);
+  await page.screenshot({ path: join(OUT, `${screen.name}-keyboard.png`) });
+  await page.keyboard.press("Tab"); // the next plot takes the cursor
+  if (!(await tooltip.isVisible())) fail("the next plot did not take the cursor on Tab");
+  await page.evaluate(() => document.activeElement.blur());
+  await tooltip.waitFor({ state: "hidden", timeout: 2000 }).catch(() => {
+    fail("the cursor stays after the plot lost the focus");
+  });
 
   // mobile pages scroll, so capture all of it; on a computer the dashboard is the window
   const fullPage = screen.viewport.width < 900;
