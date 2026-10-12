@@ -6,7 +6,7 @@ import { formatCapacity, formatDuration, formatEnergy } from "./format.ts";
 import { History } from "./history.ts";
 import { LOCALES, locale, matchLocale, setLocale, startLocale, t, translate } from "./i18n.ts";
 import type { MessageKey } from "./locales/en.ts";
-import { FrameStream, parseReport, type Reading } from "./protocol.ts";
+import { type Reading, ReportStream } from "./protocol.ts";
 
 type State = "idle" | "connecting" | "live" | "demo" | "error";
 type Source = "meter" | "demo";
@@ -63,7 +63,7 @@ const supported = bluetoothSupported();
  */
 interface Session {
   source: Source;
-  stream: FrameStream;
+  stream: ReportStream;
   /** Bluetooth name of the meter once it is connected, "" when it has none */
   meterName: string | undefined;
   stop(): void;
@@ -157,9 +157,7 @@ function redrawChart(): void {
 
 function onChunk(mine: Session, chunk: Uint8Array): void {
   if (mine !== session) return;
-  for (const frame of mine.stream.push(chunk)) {
-    const reading = parseReport(frame);
-    if (!reading) continue;
+  for (const reading of mine.stream.push(chunk)) {
     history.add(reading);
     if (mine.meterName !== undefined && meterNames.at(-1) !== mine.meterName)
       meterNames.push(mine.meterName);
@@ -180,7 +178,7 @@ function begin(source: Source, stop: () => void = () => {}): Session {
     redrawChart();
   }
   lastSource = source;
-  session = { source, stream: new FrameStream(), meterName: undefined, stop };
+  session = { source, stream: new ReportStream(), meterName: undefined, stop };
   return session;
 }
 
