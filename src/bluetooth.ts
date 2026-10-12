@@ -45,9 +45,15 @@ export function exactName(name: string): string {
   return name.replace(/\p{C}/gu, (hidden) => `\\u{${hidden.codePointAt(0)?.toString(16)}}`);
 }
 
+/**
+ * How long a meter that was picked has to open the link and start streaming. A meter that went
+ * quiet after it was listed never answers, and the browser has no limit of its own.
+ */
+export const CONNECT_TIMEOUT_MS = 20_000;
+
 /** Why a device that was picked cannot be read. The page words the reason in its language. */
 export class MeterError extends Error {
-  readonly code: "noGatt" | "noSerialService";
+  readonly code: "noGatt" | "noSerialService" | "timeout";
 
   constructor(code: MeterError["code"]) {
     super(code);
@@ -76,6 +82,8 @@ export function bluetoothSupported(): boolean {
  * The picker lists only meters (`METER_FILTERS`) unless `anyDevice` is set, which is the way
  * in for a meter with a name this page does not know yet.
  * `onLost` runs when the meter drops the link by itself, not after `disconnect()`.
+ * A meter that has not started streaming after `CONNECT_TIMEOUT_MS` is let go and the call
+ * fails with a `timeout` error.
  */
 export async function connectMeter(
   onData: (chunk: Uint8Array) => void,
@@ -110,15 +118,32 @@ export async function connectMeter(
   };
 
   device.addEventListener("gattserverdisconnected", handleLost);
-  try {
+  let abandoned = false;
+  const link = (async () => {
     const server = await device.gatt?.connect();
     if (!server) throw new MeterError("noGatt");
+    if (abandoned) return;
     characteristic = await findNotifyCharacteristic(server);
+    if (abandoned) return;
     characteristic.addEventListener("characteristicvaluechanged", handleValue);
     await characteristic.startNotifications();
+  })();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new MeterError("timeout")), CONNECT_TIMEOUT_MS);
+  });
+  try {
+    await Promise.race([link, timedOut]);
   } catch (error) {
+    if (error instanceof MeterError && error.code === "timeout") {
+      abandoned = true;
+      link.catch(() => {}); // the request ends in an error once the link is dropped below
+      device.gatt?.disconnect(); // `connected` is still false, so `close` would leave a pending request alone
+    }
     close(); // the meter accepts one connection at a time, so do not hold it after a failure
     throw error;
+  } finally {
+    clearTimeout(timer);
   }
   return {
     name: shownName(device.name),

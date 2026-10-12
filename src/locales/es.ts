@@ -31,6 +31,8 @@ export const es: Messages = {
   "error.noGatt": "Este dispositivo no ofrece conexión GATT.",
   "error.noSerialService":
     "Este dispositivo no tiene un servicio serie por Bluetooth (0xFFE0) que transmita lecturas. Puede que no sea un medidor compatible.",
+  "error.timeout":
+    "El medidor no respondió. Comprueba que tenga alimentación y esté cerca, y vuelve a elegir Conectar medidor.",
 
   "hint.notListed":
     "¿El medidor no aparece en la lista? <b>Desenchúfalo, vuelve a enchufarlo y selecciona de inmediato “Conectar medidor” otra vez.</b> Algunos medidores solo se pueden detectar justo después de encenderse. ¿Sigue sin aparecer? <all>Mostrar todos los dispositivos Bluetooth</all>",

@@ -34,6 +34,7 @@ import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { strFromU8, unzipSync } from "fflate";
 import { chromium } from "playwright";
+import { CONNECT_TIMEOUT_MS } from "../src/bluetooth.ts";
 import { LOCALES, segments } from "../src/i18n.ts";
 
 const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
@@ -218,11 +219,12 @@ const server = createServer(async (request, response) => {
 /**
  * Replaces navigator.bluetooth with a room of devices: a meter called `meterName` that names
  * `meterServices` in its advertisement and replays `frames` once a second in 20-byte chunks,
- * and some unrelated gadgets. `requestDevice` lists
+ * and some unrelated gadgets. A `silent` meter is picked but then never answers the link request,
+ * until the page drops the link, which fails the request and is counted in `window.linkDropped`. `requestDevice` lists
  * the devices the way the browser does for the given options, records the names in
  * `window.pickerListed`, and "picks" the meter when it is in the list (cancels otherwise).
  */
-function installFakeBluetooth({ frames, meterName, meterServices }) {
+function installFakeBluetooth({ frames, meterName, meterServices, silent = false }) {
   const bytes = frames.map((hex) =>
     Uint8Array.from(hex.match(/../g).map((b) => Number.parseInt(b, 16))),
   );
@@ -252,6 +254,8 @@ function installFakeBluetooth({ frames, meterName, meterServices }) {
       return [characteristic];
     },
   };
+  let refuse;
+  window.linkDropped = 0;
   const server = {
     connected: true,
     async getPrimaryService(uuid) {
@@ -263,8 +267,18 @@ function installFakeBluetooth({ frames, meterName, meterServices }) {
   const device = {
     name: meterName,
     gatt: {
-      async connect() {
-        return server;
+      connected: false,
+      connect() {
+        if (!silent) return Promise.resolve(server);
+        return new Promise((_, reject) => {
+          refuse = reject;
+        });
+      },
+      disconnect() {
+        window.linkDropped += 1;
+        refuse?.(
+          new DOMException("GATT Server disconnected while attempting to connect.", "NetworkError"),
+        );
       },
     },
     addEventListener() {},
@@ -609,6 +623,43 @@ function inspectRoom() {
       found.push("the badge covers the name of the page");
   }
   return found;
+}
+
+// A meter that is picked and then goes quiet: the link request never returns, so the page has
+// to give up by itself and be usable again. The page's clock is driven by the script.
+{
+  const { page, fail } = await openPage("silent meter", "en-US", LAPTOP, "light");
+  const en = LOCALES.find(({ tag }) => tag === "en").messages;
+  await page.clock.install();
+  await page.addInitScript(installFakeBluetooth, {
+    frames: J7C_FRAMES,
+    meterName: "UC96_BLE",
+    meterServices: [0xffe0],
+    silent: true,
+  });
+  await page.goto(`http://127.0.0.1:${port}/`);
+  await page.getByRole("button", { name: "Connect to meter" }).click();
+  await page.clock.runFor(1000); // the picker takes a moment, then the meter is picked
+  if ((await page.locator("#pill").textContent()).trim() !== en["pill.connecting"])
+    fail("the badge does not say that the page is connecting");
+  await page.clock.runFor(CONNECT_TIMEOUT_MS - 2000);
+  if ((await page.locator("#pill").textContent()).trim() !== en["pill.connecting"])
+    fail("the page gave up before the time allowed");
+  await page.clock.runFor(2000);
+  const status = (await page.locator("#status").textContent()).trim();
+  const wanted = shown(en, "status.failed", { reason: en["error.timeout"] });
+  if (status !== wanted) fail(`after the meter stayed silent the status reads "${status}"`);
+  for (const [id, name] of [
+    ["connect", "Connect to meter"],
+    ["connect-any", "Show all Bluetooth devices"],
+    ["demo", "Try the demo"],
+  ])
+    if (!(await page.locator(`#${id}`).isEnabled())) fail(`"${name}" stays disabled`);
+  if ((await page.evaluate(() => window.linkDropped)) !== 1)
+    fail("the page did not drop the link to the meter that stayed silent");
+  await page.screenshot({ path: join(OUT, "silent-meter.png") });
+  console.log(`silent-meter.png  status="${status}"`);
+  await page.close();
 }
 
 // Every translation, in the two windows with the least room

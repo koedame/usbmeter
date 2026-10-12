@@ -31,6 +31,8 @@ export const it: Messages = {
   "error.noGatt": "Questo dispositivo non offre una connessione GATT.",
   "error.noSerialService":
     "Questo dispositivo non ha un servizio seriale via Bluetooth (0xFFE0) che trasmetta le letture. Potrebbe non essere un tester supportato.",
+  "error.timeout":
+    "Il tester non ha risposto. Controlla che sia alimentato e vicino, poi scegli di nuovo Connetti il tester.",
 
   "hint.notListed":
     "Il tester non è nell’elenco? <b>Scollegalo, ricollegalo e subito dopo scegli di nuovo “Connetti il tester”.</b> Alcuni tester sono rilevabili solo per poco tempo dopo essere stati alimentati. Ancora niente? <all>Mostra tutti i dispositivi Bluetooth</all>",
