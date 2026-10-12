@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { checksumOf, encodeReport, FrameStream, hexToBytes, parseReport } from "./protocol.ts";
 
-// Frames recorded from a J7-C and posted with the on-screen values (Arduino forum, Jan 2022).
+// Frames recorded from a J7-C and posted with the on-screen values in the Arduino forum thread
+// "USB Digital Tester (BT) Protocol", January 2022:
+// https://forum.arduino.cc/t/usb-digital-tester-bt-protocol/943891
 // The screen showed 4.73 V, 1.07 A, 776 mAh, 3.67 Wh, 00:44:16, 31 °C for the fourth frame.
 const J7C_FRAMES = [
   "FF5501030001D900006C0003070000016E004B004B001F00002C0D3C0DAC012C032000" + "7C",
@@ -13,7 +15,9 @@ const J7C_FRAMES = [
 const J7C_FAST_CHARGE =
   "FF5501030007BC000048000031000000310009000900" + "1E00002436" + "3C0DAC012C032000" + "01";
 
-// Packets of an ATorch UD18 (USB), AC18-style AC meter and DC meter from the atorch-console test suite.
+// Packets of an ATorch UD18 (USB), an AC meter and a DC meter, and the command and reply frames
+// further down, are the sample packets of the atorch-console test suite
+// (https://github.com/CursedHardware/atorch-console, MIT License, Copyright 2020 NiceLabs).
 const UD18_IDLE = "FF5501030001F3000000000638000003110007000A000000122E333C000000000000004E";
 const UD18_LOAD = "FF5501030001CD00007F003CC80000554E0009000A00000047300D3C000000000000008F";
 const AC_IDLE = "FF55010100090400000E0000040000000000006401F40085002F00000A093C0000000039";

@@ -3,11 +3,14 @@
   "name": "usbmeter",
   "compatibility_date": "2026-09-11",
   // Static assets only, no Worker script. All the work happens in the browser.
-  //   pnpm run deploy  →  vite build && wrangler deploy
+  //   pnpm run deploy  →  pnpm check (which builds) && wrangler deploy
   "assets": {
     "directory": "./dist"
   },
-  "observability": {
-    "enabled": true
-  }
+  // The page's own address (the same one as VITE_SITE_URL in .env). The first deploy sets up
+  // its DNS record and certificate.
+  "routes": [{ "pattern": "usbmeter.koeda.me", "custom_domain": true }],
+  // Served there and nowhere else: no *.workers.dev address, no preview addresses.
+  "workers_dev": false,
+  "preview_urls": false
 }

@@ -1,22 +1,95 @@
 # USB Meter Web
 
-Live readings from Bluetooth USB testers and power meters, in your browser. Voltage, current,
-power, capacity, energy, D+/D−, temperature and elapsed time on a big screen, with a graph and
-CSV export. Nothing to install, no account.
+**Your Bluetooth USB tester on a full-screen dashboard, right in the browser.**
+No app to install, no account, no ads.
 
-Works with the **ATorch UD18**, **AT24** and the **J7-C**, and with other meters that stream the
-same "FF 55" frames over Bluetooth LE.
+**[Open USB Meter Web →](https://usbmeter.koeda.me)**
 
-> Deployed at https://usbmeter.koeda.me (address not final yet)
+![Voltage, current and power plotted on one time axis, with temperature, the USB data lines and the totals below](docs/dashboard.png)
+
+Cheap USB testers like the **J7-C** and the **ATorch UD18** measure well, but their phone apps
+are slow to pair, full of ads or no longer updated. USB Meter Web reads the same Bluetooth
+stream straight from the meter and shows everything it sends, all at once.
+
+## What you get
+
+- **Every reading at a glance.** Voltage, current and power each get a large readout and their
+  own graph. Temperature and the USB data lines (D+/D−) sit below, next to capacity, energy and
+  elapsed time.
+- **One time axis.** Point at any graph and a cursor reads out every value at that moment, so
+  you can see what the voltage did when the current jumped.
+- **Min, average and max** of voltage, current, power and temperature for the last minute,
+  10 minutes, hour or the whole recording.
+- **CSV export.** Download the recording and keep working on it in a spreadsheet or a script.
+- **Ready for AI analysis.** **Export for AI** packs the recording into a ZIP with a README
+  that tells Claude, ChatGPT or any other assistant what you measured, what every column means
+  and how to analyse it. You ask the question; the explaining is done.
+- **A device list without the clutter.** The Bluetooth list shows meters, not your keyboard,
+  mouse and earbuds.
+- **Private by design.** Readings stay in your browser and are never sent anywhere. No cookies,
+  no analytics.
+- **Desk or pocket.** The dashboard fills a monitor and stacks into one column on a phone, in
+  light or dark.
+- **In your language.** English, Deutsch, Español, Français, Italiano, Português (Brasil),
+  Русский, 日本語, 한국어, 简体中文 and 繁體中文. The page starts in the language your browser
+  asks for and has a list for choosing another.
+- **No meter at hand?** **Try the demo** plays a pretend charger so you can look around first.
 
 ## Use it
 
-1. Switch the meter on and disconnect it from any phone app (these meters accept one connection at a time).
-2. Open the page in **Chrome or Edge** (Windows, macOS, Linux, ChromeOS, Android) and choose **Connect to meter**.
-3. Pick the meter in the browser's Bluetooth list.
+1. Open [usbmeter.koeda.me](https://usbmeter.koeda.me) in **Chrome or Edge**.
+2. Plug the meter between a charger and the device you want to measure. If it was plugged in
+   already, unplug it and plug it back in.
+3. Choose **Connect to meter** straight away and pick the meter in the browser's Bluetooth list.
+   A J7-C shows up as `UC96_BLE`, ATorch meters under their model name (`UD18-BLE`, `AT24-BLE`,
+   ...). Readings start at once.
 
-Web Bluetooth is not available in Firefox or Safari, nor in browsers on iPhone and iPad (except apps
-that add it, such as Bluefy). **Try the demo** shows made-up readings without a meter.
+**Meter not in the list?** Unplug it, plug it back in and choose **Connect to meter** again
+straight away. Some meters, the J7-C among them, can only be found shortly after they get power,
+so one that has been on for a while stays out of the list. The page says so next to the button,
+too.
+
+If that does not help: a meter is listed only while the browser can hear it, so it needs to be
+nearby, with its Bluetooth switched on and no other connection, because these meters talk to
+one device at a time. Close the phone app first. Still missing? Cancel the list and choose
+**Show all Bluetooth devices**. When the page does not know the name of a meter connected that
+way, it says so; please [open an issue](https://github.com/koedame/usbmeter/issues) with that
+name so it can be added.
+
+## Analyse a recording with AI
+
+A recording can answer questions such as *how long did the charge take, and when did it start to
+taper?*, *does this charger hold its voltage?*, *how much does this power bank really deliver?*
+or *what does my project draw on average?* An AI assistant can work that out, provided it knows
+what it is looking at. **Export for AI** takes care of that:
+
+1. Record, then choose **Export for AI**.
+2. Pick what you measured: charging a device, a charger or power supply, a power bank or
+   battery, a cable, the power draw of a device, or an appliance on an AC meter. Add a note if
+   you like, such as "65 W charger, 1 m cable, phone starting at 20 %".
+3. Give the downloaded ZIP to Claude, ChatGPT or another assistant and ask your question. If it
+   does not take ZIP files, unpack it and give it both files. The README in the ZIP is written
+   in English whatever language the page is in; ask in your own language and the assistant
+   answers in it.
+
+The ZIP holds two files:
+
+- `readings.csv`: the readings, the same file **Download CSV** gives.
+- `README.md`: the meter, the time span, your purpose and notes, and a summary (the range of
+  every reading, energy and charge totals, pauses in the recording). Then a guide for the
+  assistant: what each column means, what a meter like this can and cannot measure, how to read
+  the USB data lines, and what to work out for your kind of test.
+
+The page still sends nothing anywhere. The ZIP goes only where you put it.
+
+### Claude skill
+
+The guide is also a [Claude skill](skills/usbmeter-analysis/SKILL.md). With the skill added,
+Claude has the guide at hand even when it gets only the CSV.
+
+- **Claude:** on the page, under **Help**, choose **Download the Claude skill** and add that ZIP
+  as a skill ([how to add a skill](https://support.claude.com/en/articles/12512180-use-skills-in-claude)).
+- **Claude Code:** copy the folder `skills/usbmeter-analysis` into `~/.claude/skills/`.
 
 ## Supported meters
 
@@ -24,67 +97,91 @@ that add it, such as Bluefy). **Try the demo** shows made-up readings without a 
 |---|---|---|
 | J7-C | USB | Checked against frames recorded from a real J7-C (values match its screen) |
 | ATorch UD18 and similar | USB | Checked against published sample packets |
-| ATorch AC meters (AC18 and similar) | AC | Checked against published sample packets |
-| ATorch DC meters, AT24 and others with the same protocol | DC | Experimental: voltage, current, power, temperature and time; capacity and energy are not decoded yet (the published layouts disagree) |
+| ATorch AC meters (AT24, AT3010) | AC | Checked against published sample packets. Adds frequency and power factor |
+| ATorch DC meters (DT24, DT3010) and others with the same protocol | DC | Experimental: voltage, current, power, temperature and time. Capacity and energy are not decoded yet, because the published layouts disagree |
 
-The type (USB / DC / AC) is read from the data, so a model not listed here may still work.
+The type (USB, DC or AC) is read from the data, so a model that is not listed may still work.
 If your meter connects but shows nothing, please open an issue with its name and model.
 
-The J7-C uses a different checksum from the ATorch one (the formula is unknown), so frames are
-accepted without checksum verification when they are otherwise well formed.
+## Browser support
+
+The page uses Web Bluetooth, which **Chrome and Edge** provide on Windows, macOS, ChromeOS and
+Android. On Linux, Chrome keeps it switched off until you enable
+`chrome://flags/#enable-experimental-web-platform-features`. Firefox and Safari do not support
+it, and neither do browsers on iPhone and iPad (except apps that add it, such as Bluefy). The
+demo works everywhere.
 
 ## Privacy
 
-Everything runs in the browser. Readings stay in memory and are never sent anywhere. No cookies,
-no analytics, no ads. The production headers (`public/_headers`) forbid scripts and connections
-to any other origin; `src/security-headers.test.ts` pins them.
+Everything runs in your browser. Readings are kept in memory while the page is open and are
+never sent anywhere. There are no cookies, no analytics and no ads, and the page stores nothing
+in your browser: the language you choose is kept in the address (`?lang=`). The site's headers
+forbid scripts from, and connections to, any other origin, and a test pins them
+(`public/_headers`, `src/security-headers.test.ts`).
 
-## Development
+Like any website, the page is delivered by a hosting provider, which sees your IP address when
+you load it.
 
-```
-pnpm install
-pnpm dev          # dev server
-pnpm check        # lint, typecheck, tests, build (same as CI)
-pnpm exec playwright install chromium   # browser for the screenshot run (once)
-pnpm build && pnpm screenshot           # drives the build in a real browser, writes screenshots/
-pnpm run deploy   # build and publish to Cloudflare (`pnpm deploy` is a different pnpm command)
-```
+## About this page
 
-`pnpm screenshot` serves the build with the production headers, runs the demo and a **fake
-Bluetooth meter** that replays real J7-C frames in 20-byte notifications, checks the numbers on
-screen and the CSV, and fails on any console error or CSP violation. It is the closest thing to a
-hardware test that does not need a meter.
+- **Who runs it:** koedame, an individual. Questions and bug reports go to the
+  [issues](https://github.com/koedame/usbmeter/issues), security problems to
+  [SECURITY.md](SECURITY.md).
+- **No warranty:** the page is provided as is, under the [MIT License](LICENSE). Readings can
+  be wrong. It is not a calibrated instrument and not a safety device: do not use it to decide
+  whether a circuit, a charger or an appliance is safe.
 
-The site address (canonical URL, social preview, `robots.txt`, `sitemap.xml`) comes from
-`VITE_SITE_URL` in `.env`. Deployment is Cloudflare Workers static assets (`wrangler.jsonc`);
-log in with `wrangler login` or pass `CLOUDFLARE_API_TOKEN`.
+## How it talks to the meter
 
-```
-index.html                 page (connect, live readings, history, about)
-src/protocol.ts            frame format: parse, checksum, stream reassembly, encoder
-src/bluetooth.ts           Web Bluetooth: pick a meter and subscribe to notifications
-src/demo.ts                pretend meter for the demo button
-src/history.ts             recorded samples and CSV
-src/chart.ts               canvas line chart
-src/main.ts                wires the page together
-```
+The meters stream their readings from a serial-over-Bluetooth characteristic (service `0xFFE0`,
+characteristic `0xFFE1`). Every frame is `FF 55 <type> <payload> <checksum>`. A report (type
+`01`, 36 bytes) carries the device type (`01` AC, `02` DC, `03` USB) and big-endian readings. The
+ATorch checksum is the sum of the bytes between the header and the checksum, xor `0x44`. The
+J7-C uses a different checksum whose formula is unknown, so its frames are accepted without
+checksum verification when they are otherwise well formed.
 
-## Protocol notes
-
-Every frame is `FF 55 <type> <payload> <checksum>`. A report (type `01`, 36 bytes) carries the
-device type (`01` AC, `02` DC, `03` USB) and big-endian readings. The checksum is the sum of the bytes
-between the header and the checksum, xor `0x44`. The layout is based on community notes
+The layout is based on community notes
 ([esphome-atorch-dl24](https://github.com/syssi/esphome-atorch-dl24/blob/main/docs/protocol-design.md),
-[atorch-console](https://github.com/NiceLabs/atorch-console)) and on the J7-C capture in
+[atorch-console](https://github.com/CursedHardware/atorch-console)) and on the J7-C capture in
 [this forum thread](https://forum.arduino.cc/t/usb-digital-tester-bt-protocol/943891). Capacity is
 read as mAh (value ÷ 1000 Ah); the UD18 sample packets are consistent with that.
 
+## Contributing
+
+Bug reports, meter names and captures from meters that are not listed are all welcome.
+[CONTRIBUTING.md](CONTRIBUTING.md) explains how to run the page locally and how it is tested
+without a meter. It is plain TypeScript with no runtime dependencies.
+
 ## 日本語
 
-Bluetooth 対応の USB テスター（ATorch UD18・AT24・J7-C など）の電圧・電流・電力・容量を、
-ブラウザ（Chrome / Edge）で大きく表示します。グラフと CSV 保存つき。アプリの導入は要りません。
-値はブラウザの中だけで扱い、どこにも送りません。iPhone の Safari は Web Bluetooth に対応していません。
+Bluetooth 対応の USB テスター（J7-C・ATorch UD18・AT24 など）の値を、ブラウザのダッシュボードで
+見るためのページです。アプリのインストールもアカウントも要りません。画面は日本語で表示されます
+（ブラウザの言語に合わせて選ばれ、右上の一覧から変えられます）。
+
+- 電圧・電流・電力を大きな数字とグラフで同時に表示。温度と D+/D− もその下に並びます
+- グラフは全部同じ時間軸。どれかにポインタを置くと、その瞬間の全部の値が出ます
+- 表示している範囲（1 分・10 分・1 時間・全部）の最小・平均・最大
+- 記録は CSV で保存できます
+- 「AI 用にエクスポート」は、記録の CSV と、測ったもの・各列の意味・分析の進め方を書いた README を
+  1 つの ZIP にします。Claude や ChatGPT に渡して日本語で質問すれば、説明なしで分析が始まります
+  （README は英語で書かれています）。同じ内容の Claude 用スキルも `skills/usbmeter-analysis` にあります
+- Bluetooth の一覧にはメーターだけが並びます
+- 値はブラウザの中だけで扱い、どこにも送りません
+
+使い方:
+
+1. Chrome か Edge（Windows・macOS・ChromeOS・Android。Linux の Chrome は、先に
+   `chrome://flags/#enable-experimental-web-platform-features` を有効にします）で
+   [usbmeter.koeda.me](https://usbmeter.koeda.me) を開きます。
+2. メーターを充電器と測りたい機器の間に挿します。挿したままだったときは、一度抜いて挿し直します。
+3. すぐに「メーターに接続」を押して、一覧からメーターを選びます。J7-C は `UC96_BLE` という名前で出ます。
+
+**一覧にメーターが出ないときは、メーターを抜いて挿し直し、すぐにもう一度「メーターに接続」を押してください。**
+J7-C など、電源が入った直後しか見つからないメーターがあります。
+
+iPhone・iPad の Safari は Web Bluetooth に対応していません。メーターが手元に無くても、「デモを試す」で画面を試せます。
 
 ## License
 
-MIT. Not affiliated with ATorch or any meter maker; product names belong to their owners.
+MIT. Not affiliated with ATorch, any meter maker or any AI provider; product names belong to
+their owners.

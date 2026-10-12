@@ -9,14 +9,28 @@
 import { describe, expect, it } from "vitest";
 import file from "../public/_headers?raw";
 
+/**
+ * The lines of `_headers` that count, the way the host reads the file: trimmed, without blank
+ * lines and comments. Indentation and blank lines mean nothing to it.
+ */
+function rules(): string[] {
+  return file
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "" && !line.startsWith("#"));
+}
+
+/** A line that starts a set of headers: the path, or the address, it applies to */
+const isPath = (line: string) => line.startsWith("/") || /^https?:/.test(line);
+
 /** The `/*` block of `_headers` as { lower-case header name: value }. */
 function rootHeaders(): Record<string, string> {
-  const lines = file.split("\n");
+  const lines = rules();
   const start = lines.indexOf("/*");
   expect(start, "_headers has no /* block").toBeGreaterThanOrEqual(0);
   const headers: Record<string, string> = {};
   for (const line of lines.slice(start + 1)) {
-    if (!/^\s+\S/.test(line)) break;
+    if (isPath(line)) break;
     const at = line.indexOf(":");
     headers[line.slice(0, at).trim().toLowerCase()] = line.slice(at + 1).trim();
   }
@@ -36,6 +50,24 @@ function csp(): Record<string, string[]> {
 }
 
 describe("production headers", () => {
+  it("when a rule is added to the policy or a second set of headers to the file, a test has to say why", () => {
+    expect(Object.keys(csp()).sort()).toEqual([
+      "base-uri",
+      "connect-src",
+      "default-src",
+      "font-src",
+      "form-action",
+      "frame-ancestors",
+      "img-src",
+      "object-src",
+      "script-src",
+      "style-src",
+    ]);
+    expect(rules().filter(isPath)).toEqual(["/*"]);
+    // "! Name" takes a header away again
+    expect(rules().filter((line) => line.startsWith("!"))).toEqual([]);
+  });
+
   it("when the page loads scripts, only the site's own files run (no inline code, no eval)", () => {
     expect(csp()["script-src"]).toEqual(["'self'"]);
   });

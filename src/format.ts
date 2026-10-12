@@ -7,25 +7,16 @@ export function formatDuration(totalSec: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-/** Digits worth showing: the meters resolve 10 mV / 10 mA (USB) or 100 mV / 1 mA (AC, DC). */
-export function formatVoltage(reading: Reading): string {
-  return reading.voltage.toFixed(reading.kind === "usb" ? 2 : 1);
-}
-
-export function formatCurrent(reading: Reading): string {
-  return reading.current.toFixed(reading.kind === "usb" ? 2 : 3);
-}
-
-export function formatPower(reading: Reading): string {
-  return reading.power.toFixed(reading.kind === "ac" ? 1 : 2);
-}
-
 export function formatEnergy(reading: Reading): { value: string; unit: string } {
   const energyWh = reading.energyWh ?? 0;
   if (reading.kind === "ac") return { value: (energyWh / 1000).toFixed(2), unit: "kWh" };
   return { value: energyWh.toFixed(2), unit: "Wh" };
 }
 
+/**
+ * Capacity in mAh. Written without a thousands separator: "1,234" is a thousand in one
+ * language of the page and a little over one in the next.
+ */
 export function formatCapacity(capacityAh: number): string {
-  return Math.round(capacityAh * 1000).toLocaleString("en-US");
+  return String(Math.round(capacityAh * 1000));
 }

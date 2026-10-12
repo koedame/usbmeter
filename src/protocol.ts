@@ -1,5 +1,5 @@
 // Wire format of the Bluetooth USB / DC / AC meters that stream "FF 55" frames
-// (ATorch UD18, AT24, AC18 ... and look-alikes such as the J7-C).
+// (ATorch UD18, AT24, DT24 ... and look-alikes such as the J7-C).
 //
 // Every frame is: FF 55 <type> <payload...> <checksum>
 //   type 0x01  report   36 bytes   (device type, then readings)

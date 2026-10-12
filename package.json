@@ -6,7 +6,7 @@
   "type": "module",
   "packageManager": "pnpm@10.30.3",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   },
   "scripts": {
     "dev": "vite",
@@ -18,11 +18,12 @@
     "test": "vitest run",
     "screenshot": "node scripts/screenshot.mjs",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
-    "deploy": "pnpm build && wrangler deploy"
+    "deploy": "pnpm check && wrangler deploy"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
     "@types/web-bluetooth": "^0.0.21",
+    "fflate": "0.8.3",
     "playwright": "1.63.0",
     "typescript": "5.9.3",
     "vite": "7.3.6",
