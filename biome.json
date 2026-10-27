@@ -1,12 +1,12 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!dist", "!.wrangler"]
+    "includes": ["**", "!dist", "!.wrangler", "!**/*.md", "!**/*.yml", "!pnpm-lock.yaml"]
   },
   "formatter": {
     "enabled": true,
@@ -27,6 +27,18 @@
       }
     }
   },
+  "overrides": [
+    {
+      "includes": ["scripts/screenshot.mjs"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "useDomNodeTextContent": "off"
+          }
+        }
+      }
+    }
+  ],
   "javascript": {
     "formatter": {
       "quoteStyle": "double",
