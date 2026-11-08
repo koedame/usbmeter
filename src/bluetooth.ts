@@ -29,11 +29,12 @@ export function knownMeterName(name: string | undefined): boolean {
 }
 
 /**
- * A device name fit to show. A J7-C name can arrive padded with NUL characters, which some
- * fonts draw as boxes.
+ * A device name fit to show: without the characters that do not print. A J7-C name can arrive
+ * padded with NUL characters, which some fonts draw as boxes, and a direction mark in a name
+ * would turn the rest of the status line around. `exactName` keeps them, written out.
  */
 export function shownName(name: string | undefined): string | undefined {
-  return name?.replaceAll("\0", "") || undefined;
+  return name?.replace(/\p{C}/gu, "") || undefined;
 }
 
 /**

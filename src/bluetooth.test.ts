@@ -72,6 +72,22 @@ describe("shownName", () => {
   it("when a device has no name, or nothing but padding, there is no name to show", () => {
     expect([undefined, "", "\0\0"].map(shownName)).toEqual([undefined, undefined, undefined]);
   });
+
+  it("when a name has other characters that do not print, such as direction marks, they are not shown either", () => {
+    expect(
+      ["UD18\u202eBLE\u202c", "UD18\u2067BLE", "\u200bUC96\ufeff", "UD18\u0007\u001b"].map(
+        shownName,
+      ),
+    ).toEqual(["UD18BLE", "UD18BLE", "UC96", "UD18"]);
+  });
+
+  it("when a name is in another script or has accents, it is shown as it is", () => {
+    expect(["電力計", "Mesure\u0301", "UD18 BLE"].map(shownName)).toEqual([
+      "電力計",
+      "Mesure\u0301",
+      "UD18 BLE",
+    ]);
+  });
 });
 
 describe("exactName", () => {
