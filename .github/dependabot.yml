@@ -7,6 +7,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      # The init and analyze steps of CodeQL must run the same version, so a
+      # pull request that bumps only one of them fails the scan.
+      codeql-action:
+        patterns: ["github/codeql-action/*"]
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
