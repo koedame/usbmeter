@@ -20,7 +20,8 @@ pnpm dev          # dev server on http://localhost:5173
 pnpm check        # lint, typecheck, tests, build (the `check` job of CI)
 ```
 
-Web Bluetooth needs a secure context; `localhost` counts as one.
+Web Bluetooth needs a secure context; `localhost` counts as one. Keep the dev server on `localhost`: do not
+start it with `--host` or set `server.host`, because the dev server is not meant to be reachable from the network.
 
 ## Checking a change without a meter
 
