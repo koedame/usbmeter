@@ -105,7 +105,8 @@ describe("production headers", () => {
 
   it("when the page is opened over HTTP, it is upgraded to HTTPS, and MIME sniffing and referrers are off", () => {
     const headers = rootHeaders();
-    expect(headers["strict-transport-security"]).toMatch(/^max-age=\d{8,}/);
+    // In production the domain-level HSTS setting takes effect, so this value matches it (6 months).
+    expect(headers["strict-transport-security"]).toBe("max-age=15552000");
     expect(headers["x-content-type-options"]).toBe("nosniff");
     expect(headers["referrer-policy"]).toBe("no-referrer");
   });
