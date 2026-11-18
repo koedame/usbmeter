@@ -31,3 +31,10 @@ deny = [
   { name = "openssl" },
   { name = "rustls" },
 ]
+
+[sources]
+# only crates.io: a dependency from a git repository or another registry is not reviewed by anyone
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
