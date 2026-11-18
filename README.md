@@ -236,7 +236,7 @@ you load it.
 - **Who runs it:** koedame, an individual. Questions and bug reports go to the
   [issues](https://github.com/koedame/usbmeter/issues), security problems to
   [SECURITY.md](SECURITY.md).
-- **No warranty:** the page is provided as is, under the [MIT License](LICENSE). Readings can
+- **No warranty:** the page and the command-line program are provided as is, under the [MIT License](LICENSE). Readings can
   be wrong. It is not a calibrated instrument and not a safety device: do not use it to decide
   whether a circuit, a charger or an appliance is safe.
 
