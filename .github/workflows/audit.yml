@@ -7,6 +7,11 @@ name: audit
 #
 # Fails from "high" up. Dev dependencies are included (no --prod), since the
 # build and the deploy run on them.
+#
+# GHSA-fc5q-39xc-vjpf (picomatch ReDoS, no patched release yet) is ignored in
+# package.json. picomatch only reaches us through vite's glob matching, with
+# patterns we write ourselves, and it is not part of the built site. Drop the
+# ignore once a patched picomatch is published.
 
 on:
   push:
