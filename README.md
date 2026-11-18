@@ -17,9 +17,10 @@ stream straight from the meter and shows everything it sends, all at once.
   own graph. Temperature and the USB data lines (D+/D−) sit below, next to capacity, energy and
   elapsed time.
 - **One time axis.** Point at any graph and a cursor reads out every value at that moment, so
-  you can see what the voltage did when the current jumped.
-- **Min, average and max** of voltage, current, power and temperature for the last minute,
-  10 minutes, hour or the whole recording.
+  you can see what the voltage did when the current jumped. A level line follows the pointer
+  and reads out its height on the axis.
+- **Min, average, median and max** of voltage, current, power and temperature for the last
+  minute, 10 minutes, hour or the whole recording, drawn as guide lines across each graph.
 - **CSV export.** Download the recording and keep working on it in a spreadsheet or a script.
 - **Ready for AI analysis.** **Export for AI** packs the recording into a ZIP with a README
   that tells Claude, ChatGPT or any other assistant what you measured, what every column means

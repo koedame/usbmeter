@@ -10,6 +10,7 @@ import {
   stepIndex,
   timeAt,
   timeTicks,
+  valueAt,
   xAt,
 } from "./chart.ts";
 
@@ -148,6 +149,25 @@ describe("xAt", () => {
   it("when the time is outside the time on screen, stops at the edge of the plot area", () => {
     expect(xAt(0, 1066, 10_000, 70_000)).toBe(52);
     expect(xAt(99_000, 1066, 10_000, 70_000)).toBe(1052);
+  });
+});
+
+describe("valueAt", () => {
+  // a plot 132 px tall has 100 px between its gutters (10 px above, 22 px below)
+  const axis = { bottom: 4.6, top: 5.2, step: 0.2 };
+
+  it("when the pointer is halfway up the plot area, gives the middle of the y-axis", () => {
+    expect(valueAt(10 + 50, 132, axis)).toBeCloseTo(4.9, 9);
+  });
+
+  it("when the pointer is on the top or the bottom edge of the plot area, gives that end of the y-axis", () => {
+    expect(valueAt(10, 132, axis)).toBeCloseTo(5.2, 9);
+    expect(valueAt(110, 132, axis)).toBeCloseTo(4.6, 9);
+  });
+
+  it("when the pointer is over the time labels below the plot area or the space above it, gives no value", () => {
+    expect(valueAt(120, 132, axis)).toBeUndefined();
+    expect(valueAt(4, 132, axis)).toBeUndefined();
   });
 });
 

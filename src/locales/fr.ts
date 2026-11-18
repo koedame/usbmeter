@@ -65,6 +65,7 @@ export const fr: Messages = {
   "panel.overTime": "{name} en fonction du temps",
   "stat.min": "Min.",
   "stat.avg": "Moy.",
+  "stat.median": "Méd.",
   "stat.max": "Max.",
   "plot.empty": "Pas encore de données",
   "totals.title": "Totaux",

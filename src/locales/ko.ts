@@ -63,6 +63,7 @@ export const ko: Messages = {
   "panel.overTime": "시간에 따른 {name} 변화",
   "stat.min": "최소",
   "stat.avg": "평균",
+  "stat.median": "중앙값",
   "stat.max": "최대",
   "plot.empty": "아직 데이터가 없습니다",
   "totals.title": "누적값",

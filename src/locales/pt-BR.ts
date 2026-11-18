@@ -63,6 +63,7 @@ export const ptBR: Messages = {
   "panel.overTime": "{name} ao longo do tempo",
   "stat.min": "Mín.",
   "stat.avg": "Méd.",
+  "stat.median": "Mediana",
   "stat.max": "Máx.",
   "plot.empty": "Ainda sem dados",
   "totals.title": "Totais",

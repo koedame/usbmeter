@@ -51,10 +51,45 @@ export interface Summary {
 const PAUSE_INTERVALS = 5;
 const PAUSE_MIN_S = 3;
 
-function median(sorted: number[]): number {
-  const middle = Math.floor(sorted.length / 2);
-  const upper = sorted[middle] ?? 0;
-  return sorted.length % 2 === 1 ? upper : ((sorted[middle - 1] ?? upper) + upper) / 2;
+/**
+ * The middle of `values`, or the mean of the two in the middle, without sorting them all: a
+ * selection (Hoare's) finds it in linear time, so the dashboard can redo it for every reading of
+ * a long recording. It reorders `values`. NaN when there are none.
+ */
+export function median(values: Float64Array): number {
+  const half = values.length >> 1;
+  const upper = select(values, half);
+  if (values.length % 2 === 1) return upper;
+  // select leaves everything below the middle in front of it, so the other middle value is the largest of those
+  let lower = Number.NEGATIVE_INFINITY;
+  for (let i = 0; i < half; i++) lower = Math.max(lower, values[i] ?? lower);
+  return (lower + upper) / 2;
+}
+
+/** The `k`th smallest of `values` (from 0), which ends up at index `k`, with nothing larger before it and nothing smaller after it */
+function select(values: Float64Array, k: number): number {
+  let left = 0;
+  let right = values.length - 1;
+  while (left < right) {
+    const pivot = values[(left + right) >> 1] ?? 0;
+    let i = left;
+    let j = right;
+    while (i <= j) {
+      while ((values[i] ?? 0) < pivot) i++;
+      while ((values[j] ?? 0) > pivot) j--;
+      if (i <= j) {
+        const swap = values[i] ?? 0;
+        values[i] = values[j] ?? 0;
+        values[j] = swap;
+        i++;
+        j--;
+      }
+    }
+    if (k <= j) right = j;
+    else if (k >= i) left = i;
+    else break;
+  }
+  return values[k] ?? Number.NaN;
 }
 
 function counted(values: (number | undefined)[]): Total["counted"] {
@@ -75,7 +110,7 @@ export function summarize(samples: Sample[]): Summary | undefined {
   if (!first || !last) return undefined;
 
   const steps = samples.slice(1).map((sample, i) => (sample.t - (samples[i]?.t ?? 0)) / 1000);
-  const intervalS = steps.length === 0 ? undefined : median([...steps].sort((a, b) => a - b));
+  const intervalS = steps.length === 0 ? undefined : median(Float64Array.from(steps));
   const pauseFrom = Math.max(PAUSE_MIN_S, PAUSE_INTERVALS * (intervalS ?? 0));
   const pauses = { count: 0, totalS: 0, longestS: 0 };
   let energyWh = 0;

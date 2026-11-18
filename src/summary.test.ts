@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Sample } from "./history.ts";
 import type { Reading } from "./protocol.ts";
-import { summarize } from "./summary.ts";
+import { median, summarize } from "./summary.ts";
 
 const usb = (fields: Partial<Reading>): Reading => ({
   kind: "usb",
@@ -208,5 +208,40 @@ describe("summarize", () => {
     expect(summary?.energyWh.integrated).toBeCloseTo(99.999, 3); // 3.6 W for 99,999 s
     expect(summary?.energyWh.counted).toBeCloseTo(99.999, 3);
     expect(summary?.intervalS).toBe(1);
+  });
+});
+
+describe("median", () => {
+  it("when there is an odd number of values, gives the one in the middle of their order", () => {
+    expect(median(Float64Array.of(5.02, 4.71, 4.98))).toBe(4.98);
+  });
+
+  it("when there is an even number of values, gives the mean of the two in the middle", () => {
+    expect(median(Float64Array.of(10, 2, 1, 3))).toBe(2.5);
+  });
+
+  it("when most of the values are the same, gives that value", () => {
+    expect(median(Float64Array.of(0, 0, 0, 0, 0, 3.2, 0))).toBe(0);
+    expect(median(Float64Array.of(1, 5, 5, 5, 5, 9))).toBe(5);
+  });
+
+  it("when there are no values, gives no number", () => {
+    expect(median(new Float64Array(0))).toBeNaN();
+  });
+
+  it("when there are thousands of values, agrees with sorting them", () => {
+    let seed = 7;
+    const random = () => {
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
+    };
+    for (const count of [1, 2, 999, 1000]) {
+      const values = Array.from({ length: count }, () => Math.round(random() * 500) / 100);
+      const sorted = [...values].sort((a, b) => a - b);
+      const middle = count >> 1;
+      const wanted =
+        count % 2 === 1 ? sorted[middle] : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+      expect(median(Float64Array.from(values))).toBe(wanted);
+    }
   });
 });

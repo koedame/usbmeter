@@ -62,6 +62,7 @@ export const ja: Messages = {
   "panel.overTime": "{name}の推移",
   "stat.min": "最小",
   "stat.avg": "平均",
+  "stat.median": "中央値",
   "stat.max": "最大",
   "plot.empty": "データはまだありません",
   "totals.title": "積算",

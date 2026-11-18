@@ -60,6 +60,7 @@ export const zhHant: Messages = {
   "panel.overTime": "{name}隨時間的變化",
   "stat.min": "最小",
   "stat.avg": "平均",
+  "stat.median": "中位數",
   "stat.max": "最大",
   "plot.empty": "尚無資料",
   "totals.title": "累計",

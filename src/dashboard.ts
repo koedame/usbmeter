@@ -9,16 +9,19 @@ import {
   drawPlot,
   formatClock,
   GUTTER,
+  type Guide,
   nearestIndex,
   type Point,
   stepIndex,
   timeAt,
+  valueAt,
   xAt,
 } from "./chart.ts";
 import type { Sample } from "./history.ts";
 import { t, translate } from "./i18n.ts";
 import { METRICS, type Metric, PANELS, type PanelDef } from "./metrics.ts";
 import type { MeterKind, Reading } from "./protocol.ts";
+import { median } from "./summary.ts";
 
 interface Panel {
   def: PanelDef;
@@ -32,7 +35,9 @@ interface Panel {
   /** the live value of each metric */
   values: HTMLElement[];
   /** panels with a single metric also show its range over the time on screen */
-  stats: { min: HTMLElement; mean: HTMLElement; max: HTMLElement } | undefined;
+  stats: Record<Stat, HTMLElement> | undefined;
+  /** that range as lines across the plot */
+  guides: Guide[];
   /** what is plotted, one series per metric, already thinned to the plot's width */
   series: Point[][];
   /** undefined while there is nothing to plot */
@@ -41,6 +46,15 @@ interface Panel {
 
 const NO_VALUE = "–";
 const DASH = [7, 4];
+
+type Stat = "min" | "mean" | "median" | "max";
+/** How the guide of each part of the range is dashed. The keys beside the numbers in src/style.css draw the same. */
+const GUIDE_DASH: Record<Stat, number[]> = {
+  min: [2, 3],
+  mean: [6, 4],
+  median: [6, 3, 2, 3],
+  max: [2, 3],
+};
 
 function clone(templateId: string): HTMLElement {
   const template = document.getElementById(templateId);
@@ -101,6 +115,7 @@ function buildPanel(def: PanelDef): Panel {
     stats = {
       min: part(statsRoot, '[data-stat="min"]'),
       mean: part(statsRoot, '[data-stat="mean"]'),
+      median: part(statsRoot, '[data-stat="median"]'),
       max: part(statsRoot, '[data-stat="max"]'),
     };
   } else {
@@ -109,7 +124,19 @@ function buildPanel(def: PanelDef): Panel {
 
   const name = part(title, ".panel__name");
   const canvas = part<HTMLCanvasElement>(root, "canvas");
-  return { def, metrics, root, name, labels, canvas, values, stats, series: [], axis: undefined };
+  return {
+    def,
+    metrics,
+    root,
+    name,
+    labels,
+    canvas,
+    values,
+    stats,
+    guides: [],
+    series: [],
+    axis: undefined,
+  };
 }
 
 export class Dashboard {
@@ -228,11 +255,14 @@ export class Dashboard {
   private compute(): void {
     for (const panel of this.panels) {
       panel.series = [];
+      panel.guides = [];
       panel.axis = undefined;
       let min = Number.POSITIVE_INFINITY;
       let max = Number.NEGATIVE_INFINITY;
       let sum = 0;
       let count = 0;
+      // only a panel with a range keeps every value, for the median; it plots one metric
+      const all = new Float64Array(panel.stats && !panel.root.hidden ? this.samples.length : 0);
       if (this.span && !panel.root.hidden) {
         const columns = Math.max(1, panel.canvas.clientWidth - GUTTER.left - GUTTER.right);
         for (const metric of panel.metrics) {
@@ -246,6 +276,7 @@ export class Dashboard {
             if (v > max) max = v;
             sum += v;
             count += 1;
+            if (panel.stats) all[count - 1] = v;
           });
           panel.series.push(decimate(points, this.span.from, this.span.to, columns));
         }
@@ -258,10 +289,17 @@ export class Dashboard {
       }
       if (panel.stats && first) {
         const digits = first.digits(this.kind);
-        panel.stats.min.textContent = count > 0 ? min.toFixed(digits) : NO_VALUE;
-        panel.stats.max.textContent = count > 0 ? max.toFixed(digits) : NO_VALUE;
-        // one more digit than the meter shows: averaging is what earns it
-        panel.stats.mean.textContent = count > 0 ? (sum / count).toFixed(digits + 1) : NO_VALUE;
+        const range =
+          count > 0
+            ? { min, mean: sum / count, median: median(all.subarray(0, count)), max }
+            : undefined;
+        for (const stat of ["min", "mean", "median", "max"] as const) {
+          const v = range?.[stat];
+          // the mean gets one more digit than the meter shows: averaging is what earns it
+          panel.stats[stat].textContent =
+            v === undefined ? NO_VALUE : v.toFixed(stat === "mean" ? digits + 1 : digits);
+          if (v !== undefined) panel.guides.push({ v, dash: GUIDE_DASH[stat] });
+        }
       }
     }
   }
@@ -323,6 +361,14 @@ export class Dashboard {
         drawEmpty(panel.canvas, t("plot.empty"));
         continue;
       }
+      // the height of the pointer, on the plot it is over
+      let level: { v: number; label: string } | undefined;
+      const [first] = panel.metrics;
+      if (this.pointer?.canvas === panel.canvas && first) {
+        const box = panel.canvas.getBoundingClientRect();
+        const v = valueAt(this.pointer.y - box.top, box.height, panel.axis);
+        if (v !== undefined) level = { v, label: v.toFixed(first.digits(this.kind)) };
+      }
       const traces = panel.metrics.map((metric, i) => {
         const value = sample ? metric.value(sample.reading) : undefined;
         return {
@@ -333,7 +379,13 @@ export class Dashboard {
           dash: i > 0 ? DASH : undefined,
         };
       });
-      drawPlot(panel.canvas, traces, { ...this.span, axis: panel.axis, cursor: at });
+      drawPlot(panel.canvas, traces, {
+        ...this.span,
+        axis: panel.axis,
+        cursor: at,
+        guides: panel.guides,
+        level,
+      });
     }
     this.showTooltip(sample, anchor);
   }
