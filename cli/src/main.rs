@@ -118,7 +118,7 @@ async fn scan(all: bool, seconds: u64) -> meter::Result<()> {
     for d in &devices {
         println!(
             "{:<24} {:<36} {:>8}{}",
-            d.name.as_deref().unwrap_or("(no name)"),
+            d.shown_name(),
             d.address,
             d.rssi
                 .map_or_else(|| "-".to_string(), |r| format!("{r} dBm")),
@@ -151,7 +151,7 @@ async fn record(
     });
     let to_terminal = std::io::stdout().is_terminal();
     let live = std::io::stderr().is_terminal() && !(out == "-" && to_terminal);
-    let mut sink = Sink::open(&out, live)?;
+    let mut sink = Sink::open(&out, live).map_err(|e| format!("cannot open {out}: {e}"))?;
 
     let adapter = meter::adapter().await?;
     let mut events = meter::events(&adapter).await?;
@@ -240,19 +240,24 @@ async fn wait_for_meter(
     shutdown: &mut watch::Receiver<bool>,
 ) -> Option<Found> {
     if let Some(id) = target {
-        let wait = async {
-            while let Some(event) = events.next().await {
-                if meter::heard(&event, id) {
-                    return;
+        loop {
+            let wait = async {
+                while let Some(event) = events.next().await {
+                    if meter::heard(&event, id) {
+                        return;
+                    }
                 }
+                sleep(RETRY).await; // the event stream ended: do not spin
+            };
+            tokio::select! {
+                _ = shutdown.changed() => return None,
+                _ = timeout(RETRY, wait) => {}
             }
-            sleep(RETRY).await; // the event stream ended: do not spin
-        };
-        tokio::select! {
-            _ = shutdown.changed() => return None,
-            _ = timeout(RETRY, wait) => {}
+            // the system forgets a device that has not been heard for a few minutes
+            if let Some(found) = meter::found(adapter, id).await {
+                return Some(found);
+            }
         }
-        return meter::found(adapter, id).await;
     }
     loop {
         let mut candidates: Vec<Found> = meter::in_range(adapter)

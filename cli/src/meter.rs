@@ -67,13 +67,40 @@ pub struct Found {
 }
 
 impl Found {
-    pub fn describe(&self) -> String {
-        format!(
-            "{} ({})",
-            self.name.as_deref().unwrap_or("(no name)"),
-            self.address
-        )
+    /// The name fit to print: a device chooses its own name, so a name must not be able to
+    /// send commands to the terminal (escape sequences) or turn the line around
+    pub fn shown_name(&self) -> String {
+        self.name
+            .as_deref()
+            .map_or_else(|| "(no name)".to_string(), printable)
     }
+
+    pub fn describe(&self) -> String {
+        format!("{} ({})", self.shown_name(), self.address)
+    }
+}
+
+/// The name with every character that does not print written as `\u{..}` (control characters,
+/// zero-width and direction marks)
+pub fn printable(name: &str) -> String {
+    name.chars()
+        .map(|c| {
+            let hidden = c.is_control()
+                || matches!(
+                    c,
+                    '\u{ad}'
+                        | '\u{200b}'..='\u{200f}'
+                        | '\u{2028}'..='\u{202e}'
+                        | '\u{2060}'..='\u{206f}'
+                        | '\u{feff}'
+                );
+            if hidden {
+                format!("\\u{{{:x}}}", c as u32)
+            } else {
+                c.to_string()
+            }
+        })
+        .collect()
 }
 
 fn address_of(props: &PeripheralProperties, id: &PeripheralId) -> String {
@@ -319,6 +346,17 @@ mod tests {
             Some((short_uuid(0xfff0), short_uuid(0xfff1)))
         );
         assert_eq!(pick_notify(&[]), None);
+    }
+
+    #[test]
+    fn when_a_name_has_an_escape_sequence_writes_it_out_instead_of_sending_it_to_the_terminal() {
+        assert_eq!(
+            printable("UC96\u{1b}]0;x\u{7}_BLE"),
+            "UC96\\u{1b}]0;x\\u{7}_BLE"
+        );
+        assert_eq!(printable("a\u{202e}b"), "a\\u{202e}b");
+        assert_eq!(printable("UC96_BLE"), "UC96_BLE");
+        assert_eq!(printable("温度計"), "温度計");
     }
 
     #[test]
