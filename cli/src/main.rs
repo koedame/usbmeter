@@ -191,7 +191,7 @@ async fn record(
         let link = match link {
             Ok(link) => link,
             Err(error) => {
-                meter::start_scan(&adapter).await?;
+                rescan(&adapter, &mut sink, &mut last_error).await;
                 failed.insert(found.id.clone());
                 let error = error.to_string();
                 if error != last_error {
@@ -213,19 +213,33 @@ async fn record(
         sink.note(&format!("connected to {}", found.describe()));
         let ended = stream(&link, &found, &mut events, &mut sink, &mut shutdown).await;
         meter::close(&link.peripheral).await;
-        meter::start_scan(&adapter).await?;
         match ended {
             Ok(Ended::Shutdown) => break,
-            Ok(Ended::Lost(why)) => sink.note(&format!(
+            Ok(Ended::Lost(why)) => {
+                sink.note(&format!(
                 "lost {} ({why}); waiting for it to advertise again. A J7-C advertises only just after it is powered on: if it does not come back, unplug it and plug it in again",
                 found.describe()
-            )),
+            ));
+                rescan(&adapter, &mut sink, &mut last_error).await;
+            }
             Err(error) => return Err(error),
         }
     }
     sink.finish();
     sink.note("stopped");
     Ok(())
+}
+
+/// Starts scanning again after a link. The system can fail to answer for a moment (BlueZ
+/// sometimes does), and a recording that has run for days should not end for that.
+async fn rescan(adapter: &btleplug::platform::Adapter, sink: &mut Sink, last_error: &mut String) {
+    if let Err(error) = meter::start_scan(adapter).await {
+        let error = format!("could not start scanning: {error}");
+        if error != *last_error {
+            sink.note(&error);
+            *last_error = error;
+        }
+    }
 }
 
 /// Finds the meter to record. Before the first connection that is the first meter in range that
@@ -300,7 +314,9 @@ async fn stream(
     sink: &mut Sink,
     shutdown: &mut watch::Receiver<bool>,
 ) -> meter::Result<Ended> {
-    let mut notifications = meter::notifications(link).await?;
+    let Ok(mut notifications) = meter::notifications(link).await else {
+        return Ok(Ended::Lost("the notifications could not be read"));
+    };
     let mut reports = protocol::ReportStream::default();
     loop {
         tokio::select! {
