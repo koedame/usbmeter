@@ -1,0 +1,119 @@
+name: cli
+
+# The command-line recorder (cli/).
+# test: format, lints (no warnings) and tests on Linux, macOS and Windows. The tests read
+#   testdata/protocol.json, which the page's tests read too, so a change to the page's parser
+#   runs them as well, which is why this runs on every pull request.
+# deps: the dependencies that must not get in (HTTP clients and TLS: the recorder makes no
+#   network connections) and where crates may come from.
+# build: the release binary for each platform, packed with the license texts of its
+#   dependencies, as an artifact of the run. Nothing is published from here.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    working-directory: cli
+    shell: bash
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup show active-toolchain || rustup install
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libdbus-1-dev pkg-config
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: cli
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+
+  deps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
+        with:
+          tool: cargo-deny
+      - run: cargo deny check bans sources
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest }
+          - { target: aarch64-unknown-linux-gnu, os: ubuntu-24.04-arm }
+          - { target: aarch64-apple-darwin, os: macos-latest }
+          - { target: x86_64-apple-darwin, os: macos-latest }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup show active-toolchain || rustup install
+      - run: rustup target add ${{ matrix.target }}
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libdbus-1-dev pkg-config
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: cli
+          key: ${{ matrix.target }}
+      - uses: taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
+        with:
+          tool: cargo-about
+      - run: cargo build --release --locked --target ${{ matrix.target }}
+      # fails when a dependency is under a license that about.toml does not accept
+      - run: cargo about generate --locked about.hbs > THIRD-PARTY-LICENSES.txt
+      - name: Check that macOS binaries carry the Bluetooth usage description
+        if: runner.os == 'macOS'
+        run: |
+          binary=target/${{ matrix.target }}/release/usbmeter
+          otool -l "$binary" | grep -q 'sectname __info_plist'
+          otool -s __TEXT __info_plist "$binary"
+          strings -a "$binary" | grep NSBluetoothAlwaysUsageDescription
+      - name: Run the binary
+        if: matrix.target != 'x86_64-apple-darwin'
+        run: target/${{ matrix.target }}/release/usbmeter --version
+      - name: Pack
+        run: |
+          name=usbmeter-${{ matrix.target }}
+          mkdir "$name"
+          cp ../LICENSE THIRD-PARTY-LICENSES.txt "$name/"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cp target/${{ matrix.target }}/release/usbmeter.exe "$name/"
+            echo "ARCHIVE=$name.zip" >> "$GITHUB_ENV"
+          else
+            cp target/${{ matrix.target }}/release/usbmeter "$name/"
+            tar -czf "$name.tar.gz" "$name"
+            echo "ARCHIVE=$name.tar.gz" >> "$GITHUB_ENV"
+          fi
+      # the tar on the Windows runner's PATH is GNU tar, which cannot write a zip
+      - name: Pack (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path usbmeter-${{ matrix.target }} -DestinationPath usbmeter-${{ matrix.target }}.zip
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: usbmeter-${{ matrix.target }}
+          path: cli/${{ env.ARCHIVE }}
+          if-no-files-found: error
+          retention-days: 7

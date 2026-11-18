@@ -1,0 +1,12 @@
+# cargo about generate about.hbs: the license texts of every dependency in the binary
+# (THIRD-PARTY-LICENSES.txt, shipped next to it). A dependency under a license that is not
+# listed here makes the command fail, so a new license is looked at before it ships.
+accepted = ["MIT", "Apache-2.0", "BSD-3-Clause", "Unicode-3.0"]
+ignore-dev-dependencies = true
+targets = [
+  "x86_64-unknown-linux-gnu",
+  "aarch64-unknown-linux-gnu",
+  "x86_64-apple-darwin",
+  "aarch64-apple-darwin",
+  "x86_64-pc-windows-msvc",
+]

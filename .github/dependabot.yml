@@ -22,3 +22,10 @@ updates:
       npm-major:
         update-types: ["major"]
         group-by: dependency-name
+  - package-ecosystem: "cargo"
+    directory: "/cli"
+    schedule:
+      interval: "weekly"
+    groups:
+      cargo-minor-patch:
+        update-types: ["minor", "patch"]

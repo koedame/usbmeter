@@ -112,6 +112,114 @@ Android. On Linux, Chrome keeps it switched off until you enable
 it, and neither do browsers on iPhone and iPad (except apps that add it, such as Bluefy). The
 demo works everywhere.
 
+## Command line: record without a browser tab
+
+For a recording that has to run for hours or days, the browser is a poor host: a tab that sleeps,
+a browser that updates or a screen that locks stops it. `usbmeter` in [`cli/`](cli) is the same
+recorder as a program for Windows, macOS and Linux. It runs in the background, keeps writing
+when the meter drops off and comes back, and writes the same CSV as **Download CSV**, so the
+Claude skill above and any spreadsheet read it as they read the page's.
+
+```
+usbmeter scan                          # the meters in range
+usbmeter record --out readings.csv     # record until Ctrl+C or SIGTERM
+usbmeter record --device UC96_BLE --out -    # one meter by name or address, CSV on standard output
+```
+
+- **One row per report, written at once.** A crash loses at most the last row, and nothing is
+  kept in memory. A file that exists is appended to (a header is written only to an empty one).
+  Without `--out`, a new `usbmeter-<date>.csv` is made in the current directory. Times are UTC.
+- **It reconnects.** When the meter drops off, `usbmeter` waits, connects again when the meter
+  advertises and goes on writing to the same file. When the link is lost and found again, a line
+  says so on standard error. A J7-C advertises only shortly after it gets power: if it does not
+  come back, unplug it and plug it in again.
+- **It stops cleanly.** Ctrl+C and SIGTERM end the program between two rows with exit code 0.
+- **On a terminal** the latest reading is shown on one line. Anything else prints nothing but
+  the recording.
+- **It talks to nobody but the meter.** No update check, no telemetry, no network code at all.
+
+### Install
+
+Build it with [Rust](https://rustup.rs) (the CI also builds it for Linux on x86_64 and aarch64,
+macOS on Apple silicon and Intel, and Windows, and keeps the binaries with the licenses of
+their dependencies as an artifact of each run of the `cli` workflow):
+
+```
+cd cli && cargo build --release      # the program is target/release/usbmeter
+```
+
+On Linux you need BlueZ running and the D-Bus library (`libdbus-1-dev` and `pkg-config` to
+build, `libdbus-1-3` to run). macOS asks for the Bluetooth permission the first time. On Windows
+the computer needs a Bluetooth adapter that supports Low Energy.
+
+### Run it in the background
+
+These examples start the recorder at login and start it again when it stops by itself. Change
+the paths and the meter name; `usbmeter scan` shows the name.
+
+**Linux (systemd user unit).** `~/.config/systemd/user/usbmeter.service`:
+
+```ini
+[Unit]
+Description=USB meter recorder
+
+[Service]
+ExecStart=%h/bin/usbmeter record --device UC96_BLE --out %h/usbmeter/readings.csv
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+```
+
+```
+systemctl --user daemon-reload && systemctl --user enable --now usbmeter
+loginctl enable-linger "$USER"      # keep it running when you are logged out
+journalctl --user -u usbmeter -f    # connected / lost lines
+```
+
+**macOS (launchd).** `~/Library/LaunchAgents/local.usbmeter.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.usbmeter</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/you/bin/usbmeter</string>
+    <string>record</string>
+    <string>--device</string><string>UC96_BLE</string>
+    <string>--out</string><string>/Users/you/usbmeter/readings.csv</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+  <key>StandardErrorPath</key><string>/Users/you/usbmeter/usbmeter.log</string>
+</dict>
+</plist>
+```
+
+```
+launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/local.usbmeter.plist
+launchctl bootout "gui/$(id -u)/local.usbmeter"      # stop it
+```
+
+When launchd starts the program, the Bluetooth permission is asked in the program's own name
+(it carries its own usage description), not the terminal's. Allow it, or switch it on under
+System Settings, Privacy & Security, Bluetooth.
+
+**Windows (Task Scheduler).** In a Command Prompt:
+
+```
+schtasks /Create /TN usbmeter /SC ONLOGON /TR "\"C:\Tools\usbmeter.exe\" record --device UC96_BLE --out C:\Users\you\usbmeter\readings.csv"
+schtasks /Run /TN usbmeter
+schtasks /End /TN usbmeter       # stop it
+schtasks /Delete /TN usbmeter /F
+```
+
+Task Scheduler ends a task at once instead of asking it to stop; every row is already written.
+
 ## Privacy
 
 Everything runs in your browser. Readings are kept in memory while the page is open and are
@@ -128,7 +236,7 @@ you load it.
 - **Who runs it:** koedame, an individual. Questions and bug reports go to the
   [issues](https://github.com/koedame/usbmeter/issues), security problems to
   [SECURITY.md](SECURITY.md).
-- **No warranty:** the page is provided as is, under the [MIT License](LICENSE). Readings can
+- **No warranty:** the page and the command-line program are provided as is, under the [MIT License](LICENSE). Readings can
   be wrong. It is not a calibrated instrument and not a safety device: do not use it to decide
   whether a circuit, a charger or an appliance is safe.
 
@@ -181,6 +289,27 @@ Bluetooth 対応の USB テスター（J7-C・ATorch UD18・AT24 など）の値
 J7-C など、電源が入った直後しか見つからないメーターがあります。
 
 iPhone・iPad の Safari は Web Bluetooth に対応していません。メーターが手元に無くても、「デモを試す」で画面を試せます。
+
+### コマンドライン版
+
+何時間・何日も記録するときは、ブラウザのタブより `usbmeter` コマンド（[`cli/`](cli)）が向いています。
+Windows・macOS・Linux で動き、バックグラウンドで記録し続けます。メーターが切れても戻ればつなぎ直して
+同じファイルに書き続けます。CSV は「CSV をダウンロード」と同じ列です。
+
+```
+usbmeter scan                         # 近くのメーターを出す
+usbmeter record --out readings.csv    # Ctrl+C か SIGTERM まで記録する
+```
+
+- 報告ごとに 1 行書いてすぐ保存します。落ちても失うのは最後の 1 行までで、履歴はメモリに溜めません。
+  既にあるファイルには追記します。`--out` を省くと、今のフォルダーに `usbmeter-<日付>.csv` を作ります。時刻は UTC です
+- メーターが戻ったらつなぎ直し、切れた・つながった時刻を標準エラーに 1 行ずつ出します。
+  J7-C は電源が入った直後しか見つからないので、戻らなければ挿し直してください
+- Ctrl+C と SIGTERM では、行の途中で切らずに終了コード 0 で終わります
+- 通信はメーターとだけです。更新の確認もテレメトリもありません
+
+入れ方（Rust でビルドします）と、バックグラウンドで回す設定（Linux の systemd・macOS の launchd・
+Windows のタスク スケジューラ）は、上の英語の節 “Command line” にあります。
 
 ## License
 

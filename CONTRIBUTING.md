@@ -69,6 +69,8 @@ src/chart.ts               one canvas plot: axis scaling, thinning of long recor
 src/dashboard.ts           the panels, their readouts and ranges, the shared cursor and tooltip
 src/main.ts                wires the page together
 scripts/screenshot.mjs     the browser run described above
+cli/                       the command-line recorder (Rust, see below)
+testdata/protocol.json     frames and the values they must read as, for both parsers
 ```
 
 To teach the device list a new meter, add the start of its Bluetooth name to
@@ -77,6 +79,28 @@ To teach the device list a new meter, add the start of its Bluetooth name to
 To add a purpose to **Export for AI**, add it to `PURPOSES` in `src/export.ts`, name it in
 `src/locales` (`purpose.<id>`) and write a section under its English name in
 `skills/usbmeter-analysis/SKILL.md`; a test keeps the names and the sections in step.
+
+## The command-line recorder
+
+`cli/` is the recorder as a program (`usbmeter scan`, `usbmeter record`), written in Rust with
+[btleplug](https://github.com/deviceplug/btleplug). You need a stable Rust toolchain
+(`cli/rust-toolchain.toml` names it) and, on Linux, `libdbus-1-dev` and `pkg-config`.
+
+```
+cd cli
+cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
+```
+
+The parser exists twice, in `src/protocol.ts` and `cli/src/protocol.rs`. Both are tested against
+`testdata/protocol.json`: recorded frames with the values they must read as, the CSV columns,
+the way a stream of notifications is cut into reports, and which Bluetooth names are meters.
+**Change a value or a rule in one parser and the tests of the other fail** until it agrees, so
+add a new frame to the file first and make both parsers read it. The CSV header is checked
+against `CSV_HEADER` in `src/history.ts`, so the recorder's file and the page's stay the same.
+
+The recorder makes no network connections, and `cli/deny.toml` bans the usual HTTP and TLS
+crates. A dependency under a license that `cli/about.toml` does not accept fails the `cli`
+workflow, which also packs the license texts with each binary.
 
 ## Texts and translations
 
