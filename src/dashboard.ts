@@ -261,8 +261,8 @@ export class Dashboard {
       let max = Number.NEGATIVE_INFINITY;
       let sum = 0;
       let count = 0;
-      // only a panel with a range needs every value kept, for the median
-      const all: number[] = [];
+      // only a panel with a range keeps every value, for the median; it plots one metric
+      const all = new Float64Array(panel.stats && !panel.root.hidden ? this.samples.length : 0);
       if (this.span && !panel.root.hidden) {
         const columns = Math.max(1, panel.canvas.clientWidth - GUTTER.left - GUTTER.right);
         for (const metric of panel.metrics) {
@@ -276,7 +276,7 @@ export class Dashboard {
             if (v > max) max = v;
             sum += v;
             count += 1;
-            if (panel.stats) all.push(v);
+            if (panel.stats) all[count - 1] = v;
           });
           panel.series.push(decimate(points, this.span.from, this.span.to, columns));
         }
@@ -291,7 +291,7 @@ export class Dashboard {
         const digits = first.digits(this.kind);
         const range =
           count > 0
-            ? { min, mean: sum / count, median: median(Float64Array.from(all)), max }
+            ? { min, mean: sum / count, median: median(all.subarray(0, count)), max }
             : undefined;
         for (const stat of ["min", "mean", "median", "max"] as const) {
           const v = range?.[stat];

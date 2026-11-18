@@ -383,21 +383,22 @@ for (const screen of SCREENS) {
     });
   });
   // What the plots draw dashed: a trace (2 px), so that the lines of one plot differ by more
-  // than their colour, or a guide of the range (1 px), each dashed its own way. And which plots
-  // put a value tag on their y-axis, for the height of the pointer.
+  // than their colour, or a guide of the range (1 px, the dashes of each plot's latest frame).
+  // And which plots put a value tag on their y-axis, for the height of the pointer.
   await page.addInitScript(() => {
     window.dashedPlots = new Set();
     window.guides = {};
     window.taggedPlots = new Set();
-    const { stroke, roundRect } = CanvasRenderingContext2D.prototype;
+    const { clearRect, stroke, roundRect } = CanvasRenderingContext2D.prototype;
+    CanvasRenderingContext2D.prototype.clearRect = function (...area) {
+      window.guides[this.canvas.getAttribute("aria-label")] = [];
+      return clearRect.apply(this, area);
+    };
     CanvasRenderingContext2D.prototype.stroke = function (...path) {
       const dash = this.getLineDash();
       const plot = this.canvas.getAttribute("aria-label");
       if (dash.length > 0 && this.lineWidth >= 2) window.dashedPlots.add(plot);
-      else if (dash.length > 0) {
-        window.guides[plot] ??= new Set();
-        window.guides[plot].add(dash.join(" "));
-      }
+      else if (dash.length > 0) window.guides[plot]?.push(dash.join(" "));
       return stroke.apply(this, path);
     };
     CanvasRenderingContext2D.prototype.roundRect = function (...shape) {
@@ -567,20 +568,6 @@ for (const screen of SCREENS) {
   )
     fail(`the skill download holds ${JSON.stringify(Object.keys(skillFiles))}`);
 
-  // every plot of one quantity draws its min and max, its mean and its median, each dashed its
-  // own way (the min and the max alike); the plot of two lines has no range to draw
-  const guides = await page.evaluate(() =>
-    Object.fromEntries(Object.entries(window.guides).map(([plot, dashes]) => [plot, dashes.size])),
-  );
-  const ranged = await page.evaluate(() =>
-    [...document.querySelectorAll(".panel:not([hidden]) canvas")]
-      .map((canvas) => canvas.getAttribute("aria-label"))
-      .filter((plot) => plot !== "Data lines over time"),
-  );
-  for (const plot of ranged)
-    if (guides[plot] !== 3) fail(`${plot} draws ${guides[plot] ?? 0} kinds of guide, expected 3`);
-  if (guides["Data lines over time"]) fail("the plot of D+ and D− draws guides");
-
   // The cursor: pointing at one plot shows every quantity at that moment, and the plot under
   // the pointer, alone, writes the value at the pointer's height on its y-axis
   const current = page.getByRole("img", { name: "Current over time" });
@@ -607,6 +594,34 @@ for (const screen of SCREENS) {
   if (JSON.stringify(tagged) !== JSON.stringify(["Current over time"]))
     fail(`pointing at the Current plot puts a value tag on ${JSON.stringify(tagged)}`);
 
+  // With the cursor on every plot, each plot of one quantity draws its min, mean, median and
+  // max, dashed three ways (the min and the max alike), and no other dashed line: one more
+  // would be a dash left on a line of the cursor. The plot of two lines has no range to draw.
+  const guides = await page.evaluate(() => window.guides);
+  const ranged = await page.evaluate(() =>
+    [...document.querySelectorAll(".panel:not([hidden]) canvas")]
+      .map((canvas) => canvas.getAttribute("aria-label"))
+      .filter((label) => label !== "Data lines over time"),
+  );
+  for (const label of ranged) {
+    const drawn = guides[label] ?? [];
+    if (drawn.length !== 4 || new Set(drawn).size !== 3)
+      fail(`${label} draws the dashed guides ${JSON.stringify(drawn)}, expected 4 dashed 3 ways`);
+  }
+  if ((guides["Data lines over time"] ?? []).length > 0) fail("the plot of D+ and D− draws guides");
+
+  // over the time labels below the plot area the pointer has no height on the y-axis
+  const nextFrame = () =>
+    page.evaluate(
+      () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
+    );
+  await page.evaluate(() => window.taggedPlots.clear());
+  await page.mouse.move(plot.x + plot.width * 0.8, plot.y + plot.height - 5);
+  await nextFrame();
+  const taggedBelow = await page.evaluate(() => [...window.taggedPlots]);
+  if (taggedBelow.length > 0)
+    fail(`pointing at the time labels puts a value tag on ${JSON.stringify(taggedBelow)}`);
+
   // only the plot that holds two lines has a dashed one
   const dashed = [...(await page.evaluate(() => [...window.dashedPlots]))];
   const wantedDashed = quantities.includes("D+") ? ["Data lines over time"] : [];
@@ -619,6 +634,7 @@ for (const screen of SCREENS) {
   // the oldest, and the live region says what the cursor shows
   await page.mouse.move(0, 0);
   await tooltip.waitFor({ state: "hidden" });
+  await page.evaluate(() => window.taggedPlots.clear());
   await current.focus();
   const clock = () => tooltip.locator(".tooltip__time").innerText();
   await page.keyboard.press("End");
@@ -633,6 +649,9 @@ for (const screen of SCREENS) {
   for (const quantity of quantities)
     if (!told.includes(quantity))
       fail(`the tooltip of the keyboard cursor lacks ${quantity}: ${told}`);
+  const taggedByKeys = await page.evaluate(() => [...window.taggedPlots]);
+  if (taggedByKeys.length > 0)
+    fail(`the keyboard's cursor puts a value tag on ${JSON.stringify(taggedByKeys)}`);
   const spoken = await page.locator("#cursor-reading").innerText();
   for (const quantity of quantities)
     if (!spoken.includes(quantity)) fail(`the live region does not say ${quantity}: ${spoken}`);

@@ -225,6 +225,10 @@ describe("median", () => {
     expect(median(Float64Array.of(1, 5, 5, 5, 5, 9))).toBe(5);
   });
 
+  it("when there are no values, gives no number", () => {
+    expect(median(new Float64Array(0))).toBeNaN();
+  });
+
   it("when there are thousands of values, agrees with sorting them", () => {
     let seed = 7;
     const random = () => {
