@@ -59,6 +59,7 @@ export const zhHans: Messages = {
   "panel.overTime": "{name}随时间的变化",
   "stat.min": "最小",
   "stat.avg": "平均",
+  "stat.median": "中位数",
   "stat.max": "最大",
   "plot.empty": "暂无数据",
   "totals.title": "累计",

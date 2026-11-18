@@ -382,13 +382,27 @@ for (const screen of SCREENS) {
       console.error(`CSP violation: ${event.violatedDirective} ${event.blockedURI}`);
     });
   });
-  // which plots draw a dashed line: the lines of one plot must differ by more than their colour
+  // What the plots draw dashed: a trace (2 px), so that the lines of one plot differ by more
+  // than their colour, or a guide of the range (1 px), each dashed its own way. And which plots
+  // put a value tag on their y-axis, for the height of the pointer.
   await page.addInitScript(() => {
     window.dashedPlots = new Set();
-    const setLineDash = CanvasRenderingContext2D.prototype.setLineDash;
-    CanvasRenderingContext2D.prototype.setLineDash = function (dash) {
-      if (dash.length > 0) window.dashedPlots.add(this.canvas.getAttribute("aria-label"));
-      return setLineDash.call(this, dash);
+    window.guides = {};
+    window.taggedPlots = new Set();
+    const { stroke, roundRect } = CanvasRenderingContext2D.prototype;
+    CanvasRenderingContext2D.prototype.stroke = function (...path) {
+      const dash = this.getLineDash();
+      const plot = this.canvas.getAttribute("aria-label");
+      if (dash.length > 0 && this.lineWidth >= 2) window.dashedPlots.add(plot);
+      else if (dash.length > 0) {
+        window.guides[plot] ??= new Set();
+        window.guides[plot].add(dash.join(" "));
+      }
+      return stroke.apply(this, path);
+    };
+    CanvasRenderingContext2D.prototype.roundRect = function (...shape) {
+      window.taggedPlots.add(this.canvas.getAttribute("aria-label"));
+      return roundRect.apply(this, shape);
     };
   });
   const meterName = screen.meterName ?? J7C_NAME;
@@ -553,10 +567,26 @@ for (const screen of SCREENS) {
   )
     fail(`the skill download holds ${JSON.stringify(Object.keys(skillFiles))}`);
 
-  // The cursor: pointing at one plot shows every quantity at that moment
+  // every plot of one quantity draws its min and max, its mean and its median, each dashed its
+  // own way (the min and the max alike); the plot of two lines has no range to draw
+  const guides = await page.evaluate(() =>
+    Object.fromEntries(Object.entries(window.guides).map(([plot, dashes]) => [plot, dashes.size])),
+  );
+  const ranged = await page.evaluate(() =>
+    [...document.querySelectorAll(".panel:not([hidden]) canvas")]
+      .map((canvas) => canvas.getAttribute("aria-label"))
+      .filter((plot) => plot !== "Data lines over time"),
+  );
+  for (const plot of ranged)
+    if (guides[plot] !== 3) fail(`${plot} draws ${guides[plot] ?? 0} kinds of guide, expected 3`);
+  if (guides["Data lines over time"]) fail("the plot of D+ and D− draws guides");
+
+  // The cursor: pointing at one plot shows every quantity at that moment, and the plot under
+  // the pointer, alone, writes the value at the pointer's height on its y-axis
   const current = page.getByRole("img", { name: "Current over time" });
   await current.scrollIntoViewIfNeeded();
   const plot = await current.boundingBox();
+  await page.evaluate(() => window.taggedPlots.clear());
   await page.mouse.move(plot.x + plot.width * 0.8, plot.y + plot.height / 2);
   const tooltip = page.locator("#tooltip");
   const appeared = await tooltip.waitFor({ state: "visible", timeout: 5000 }).then(
@@ -573,6 +603,9 @@ for (const screen of SCREENS) {
   } else {
     fail("no tooltip appeared when pointing at the Current plot");
   }
+  const tagged = await page.evaluate(() => [...window.taggedPlots]);
+  if (JSON.stringify(tagged) !== JSON.stringify(["Current over time"]))
+    fail(`pointing at the Current plot puts a value tag on ${JSON.stringify(tagged)}`);
 
   // only the plot that holds two lines has a dashed one
   const dashed = [...(await page.evaluate(() => [...window.dashedPlots]))];

@@ -154,12 +154,23 @@ export interface Trace {
   dash?: number[] | undefined;
 }
 
+/** A horizontal line across a plot at a value of its y-axis, such as the mean of what is on screen */
+export interface Guide {
+  v: number;
+  /** Dash and gap lengths in pixels, which tell the guides of one plot apart */
+  dash: number[];
+}
+
 export interface PlotView {
   from: number;
   to: number;
   axis: Axis;
   /** time under the pointer; a hairline is drawn there on every plot */
   cursor: number | undefined;
+  /** drawn under the traces */
+  guides: Guide[];
+  /** the value at the height of the pointer, while it is over this plot, and how to write it on the y-axis */
+  level: { v: number; label: string } | undefined;
 }
 
 /** Space around the plot area for the axis labels. The same on every plot, so stacked plots share one time axis. */
@@ -206,6 +217,13 @@ export function xAt(t: number, width: number, from: number, to: number): number 
   const span = width - GUTTER.left - GUTTER.right;
   const ratio = Math.min(1, Math.max(0, (t - from) / (to - from)));
   return GUTTER.left + ratio * span;
+}
+
+/** The value at a pointer `y` pixels from the top of a plot `height` pixels tall, or undefined when it is above or below the plot area */
+export function valueAt(y: number, height: number, axis: Axis): number | undefined {
+  const bottom = height - GUTTER.bottom;
+  if (y < GUTTER.top || y > bottom) return undefined;
+  return axis.bottom + ((bottom - y) / (bottom - GUTTER.top)) * (axis.top - axis.bottom);
 }
 
 /** Readings a cursor moves with Page Up and Page Down */
@@ -286,6 +304,21 @@ export function drawPlot(canvas: HTMLCanvasElement, traces: Trace[], view: PlotV
     if (x(t) - half >= 0 && x(t) + half <= width) ctx.fillText(label, x(t), height - 6);
   }
 
+  // Guides in muted ink, thin and dashed, so they read as marks on the scale rather than as readings
+  const across = (v: number) => {
+    ctx.beginPath();
+    ctx.moveTo(plot.left, crisp(y(v)));
+    ctx.lineTo(plot.right, crisp(y(v)));
+    ctx.stroke();
+  };
+  ctx.strokeStyle = surface.color("--muted");
+  ctx.lineCap = "butt"; // the round caps of the traces, left over from the last frame, would close the gaps
+  for (const guide of view.guides) {
+    ctx.setLineDash(guide.dash);
+    across(guide.v);
+  }
+  ctx.setLineDash([]);
+
   const gapMs = Math.max(GAP_MS, (3 * (to - from)) / (plot.right - plot.left));
   ctx.lineWidth = 2;
   ctx.lineJoin = "round";
@@ -334,13 +367,36 @@ export function drawPlot(canvas: HTMLCanvasElement, traces: Trace[], view: PlotV
     }
     return;
   }
-  ctx.strokeStyle = surface.color("--text-2");
+  const ink = surface.color("--text-2");
+  ctx.strokeStyle = ink;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(crisp(x(view.cursor)), plot.top);
   ctx.lineTo(crisp(x(view.cursor)), plot.bottom);
   ctx.stroke();
+  // across the plot at the value under the cursor, in the colour of its trace and fainter than the trace itself
+  for (const trace of traces) {
+    if (!trace.marker) continue;
+    ctx.strokeStyle = `${trace.color}99`;
+    across(trace.marker.v);
+  }
   for (const trace of traces) if (trace.marker) dot(trace.marker, trace.color);
+
+  if (!view.level) return;
+  // the height of the pointer, with its value in a tag over the y-axis labels
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = 1;
+  across(view.level.v);
+  const tag = { width: ctx.measureText(view.level.label).width + 8, height: 16 };
+  const middle = crisp(y(view.level.v));
+  ctx.beginPath();
+  ctx.roundRect(plot.left - tag.width, middle - tag.height / 2, tag.width, tag.height, 3);
+  ctx.fillStyle = ink;
+  ctx.fill();
+  ctx.fillStyle = ring;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  ctx.fillText(view.level.label, plot.left - 4, middle);
 }
 
 /** Splits a series where consecutive points are more than `gapMs` apart, so a pause in the readings is not bridged by a line */

@@ -531,6 +531,28 @@ a {
   font-size: 0.75rem;
 }
 
+/* Each name is underlined with a stroke dashed like its guide across the plot (GUIDE_DASH in src/dashboard.ts) */
+[data-guide] dt {
+  background-image: repeating-linear-gradient(90deg, var(--muted) 0 2px, transparent 2px 5px);
+  background-position: left bottom;
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+}
+
+[data-guide="mean"] dt {
+  background-image: repeating-linear-gradient(90deg, var(--muted) 0 6px, transparent 6px 10px);
+}
+
+[data-guide="median"] dt {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--muted) 0 6px,
+    transparent 6px 9px,
+    var(--muted) 9px 11px,
+    transparent 11px 14px
+  );
+}
+
 .panel__stats dd {
   margin: 0;
   color: var(--text-2);

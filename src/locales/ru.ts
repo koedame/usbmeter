@@ -64,6 +64,7 @@ export const ru: Messages = {
   "panel.overTime": "{name}: изменение во времени",
   "stat.min": "Мин.",
   "stat.avg": "Ср.",
+  "stat.median": "Медиана",
   "stat.max": "Макс.",
   "plot.empty": "Данных пока нет",
   "totals.title": "Итого",

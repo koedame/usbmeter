@@ -68,6 +68,7 @@ export const en = {
   "panel.overTime": "{name} over time",
   "stat.min": "Min",
   "stat.avg": "Avg",
+  "stat.median": "Median",
   "stat.max": "Max",
   "plot.empty": "No data yet",
   "totals.title": "Totals",
