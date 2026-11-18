@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import fixtureText from "../testdata/protocol.json?raw";
+import { knownMeterName } from "./bluetooth.ts";
+import { History } from "./history.ts";
 import {
   checksumOf,
   encodeReport,
@@ -225,5 +228,86 @@ describe("ReportStream", () => {
     const stream = new ReportStream();
     expect(stream.push(good.slice(0, 20))).toEqual([]);
     expect(stream.push(good.slice(20))).toHaveLength(1);
+  });
+});
+
+// testdata/protocol.json is read by the command-line recorder's tests (cli/) as well. The two
+// parsers are separate code, so a value that one of them reads differently fails its tests.
+interface SharedFixture {
+  reports: {
+    name: string;
+    hex: string;
+    expect: Record<string, number | string | boolean>;
+    csv: string;
+  }[];
+  notReports: { name: string; hex: string }[];
+  streams: {
+    name: string;
+    chunks: string[];
+    readings: { voltage: number; current: number; checksum_ok: boolean }[];
+  }[];
+  names: { name: string; known: boolean }[];
+}
+const shared: SharedFixture = JSON.parse(fixtureText);
+
+describe("the test data shared with the command-line recorder", () => {
+  it("when a recorded frame is read, gives the values in the file", () => {
+    expect(shared.reports.length).toBeGreaterThan(0);
+    for (const { name, hex, expect: want } of shared.reports) {
+      const reading = parseReport(hexToBytes(hex));
+      expect(reading, name).toBeDefined();
+      const got: Record<string, number | string | boolean | undefined> = {
+        kind: reading?.kind,
+        voltage: reading?.voltage,
+        current: reading?.current,
+        power: reading?.power,
+        temperature_c: reading?.temperatureC,
+        duration_s: reading?.durationSec,
+        backlight_s: reading?.backlightSec,
+        checksum_ok: reading?.checksumOk,
+        energy_wh: reading?.energyWh,
+        capacity_ah: reading?.capacityAh,
+        d_minus_v: reading?.dMinus,
+        d_plus_v: reading?.dPlus,
+        frequency_hz: reading?.frequencyHz,
+        power_factor: reading?.powerFactor,
+        price_per_kwh: reading?.pricePerKwh,
+      };
+      for (const [key, value] of Object.entries(got)) {
+        expect(value, `${name}: ${key}`).toEqual(want[key]);
+      }
+    }
+  });
+
+  it("when a recorded frame is written to the CSV, its columns are the ones in the file", () => {
+    for (const { name, hex, csv } of shared.reports) {
+      const reading = parseReport(hexToBytes(hex));
+      const history = new History();
+      if (reading) history.add(reading, new Date(0));
+      const row = history.toCsv().split("\n")[1]?.split(",").slice(2).join(",");
+      expect(row, name).toBe(csv);
+    }
+  });
+
+  it("when a frame is not a report, reads nothing", () => {
+    for (const { name, hex } of shared.notReports) {
+      expect(parseReport(hexToBytes(hex)), name).toBeUndefined();
+    }
+  });
+
+  it("when notifications are fed to a report stream, returns the readings in the file", () => {
+    for (const { name, chunks, readings } of shared.streams) {
+      const stream = new ReportStream();
+      const got = chunks
+        .flatMap((chunk) => stream.push(hexToBytes(chunk)))
+        .map((r) => ({ voltage: r.voltage, current: r.current, checksum_ok: r.checksumOk }));
+      expect(got, name).toEqual(readings);
+    }
+  });
+
+  it("when a device name is checked, matches the meter names in the file", () => {
+    for (const { name, known } of shared.names) {
+      expect(knownMeterName(name), JSON.stringify(name)).toBe(known);
+    }
   });
 });

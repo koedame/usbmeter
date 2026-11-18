@@ -1,0 +1,425 @@
+{
+  "_": "Shared by src/protocol.test.ts and cli/src (cargo test). Change a value here and both must agree.",
+  "reports": [
+    {
+      "name": "a J7-C report (first of four recorded)",
+      "hex": "FF5501030001D900006C0003070000016E004B004B001F00002C0D3C0DAC012C0320007C",
+      "expect": {
+        "kind": "usb",
+        "voltage": 4.73,
+        "current": 1.08,
+        "power": 5.108,
+        "temperature_c": 31,
+        "duration_s": 2653,
+        "backlight_s": 60,
+        "checksum_ok": false,
+        "energy_wh": 3.66,
+        "capacity_ah": 0.775,
+        "d_minus_v": 0.75,
+        "d_plus_v": 0.75
+      },
+      "csv": "4.73,1.08,5.108,3.66,0.775,31,0.75,0.75,,"
+    },
+    {
+      "name": "a J7-C report (second)",
+      "hex": "FF5501030001D900006A0003070000016E004A004B001F00002C0E3C0DAC012C032000E7",
+      "expect": {
+        "kind": "usb",
+        "voltage": 4.73,
+        "current": 1.06,
+        "power": 5.014,
+        "temperature_c": 31,
+        "duration_s": 2654,
+        "backlight_s": 60,
+        "checksum_ok": false,
+        "energy_wh": 3.66,
+        "capacity_ah": 0.775,
+        "d_minus_v": 0.74,
+        "d_plus_v": 0.75
+      },
+      "csv": "4.73,1.06,5.014,3.66,0.775,31,0.75,0.74,,"
+    },
+    {
+      "name": "a J7-C report (third)",
+      "hex": "FF5501030001D900006A0003080000016E004B004B001E00002C0F3C0DAC012C03200054",
+      "expect": {
+        "kind": "usb",
+        "voltage": 4.73,
+        "current": 1.06,
+        "power": 5.014,
+        "temperature_c": 30,
+        "duration_s": 2655,
+        "backlight_s": 60,
+        "checksum_ok": false,
+        "energy_wh": 3.66,
+        "capacity_ah": 0.776,
+        "d_minus_v": 0.75,
+        "d_plus_v": 0.75
+      },
+      "csv": "4.73,1.06,5.014,3.66,0.776,30,0.75,0.75,,"
+    },
+    {
+      "name": "a J7-C report, the one whose on-screen values were posted (4.73 V, 1.07 A, 776 mAh, 3.67 Wh, 00:44:16, 31 C)",
+      "hex": "FF5501030001D900006B0003080000016F004B004B001F00002C103C0DAC012C032000C5",
+      "expect": {
+        "kind": "usb",
+        "voltage": 4.73,
+        "current": 1.07,
+        "power": 5.061,
+        "temperature_c": 31,
+        "duration_s": 2656,
+        "backlight_s": 60,
+        "checksum_ok": false,
+        "energy_wh": 3.67,
+        "capacity_ah": 0.776,
+        "d_minus_v": 0.75,
+        "d_plus_v": 0.75
+      },
+      "csv": "4.73,1.07,5.061,3.67,0.776,31,0.75,0.75,,"
+    },
+    {
+      "name": "a J7-C negotiating 19.8 V",
+      "hex": "FF5501030007BC0000480000310000003100090009001E000024363C0DAC012C03200001",
+      "expect": {
+        "kind": "usb",
+        "voltage": 19.8,
+        "current": 0.72,
+        "power": 14.256,
+        "temperature_c": 30,
+        "duration_s": 2214,
+        "backlight_s": 60,
+        "checksum_ok": false,
+        "energy_wh": 0.49,
+        "capacity_ah": 0.049,
+        "d_minus_v": 0.09,
+        "d_plus_v": 0.09
+      },
+      "csv": "19.8,0.72,14.256,0.49,0.049,30,0.09,0.09,,"
+    },
+    {
+      "name": "a UD18 with nothing connected",
+      "hex": "FF5501030001F3000000000638000003110007000A000000122E333C000000000000004E",
+      "expect": {
+        "kind": "usb",
+        "voltage": 4.99,
+        "current": 0,
+        "power": 0,
+        "temperature_c": 0,
+        "duration_s": 67611,
+        "backlight_s": 60,
+        "checksum_ok": true,
+        "energy_wh": 7.85,
+        "capacity_ah": 1.592,
+        "d_minus_v": 0.07,
+        "d_plus_v": 0.1
+      },
+      "csv": "4.99,0,0,7.85,1.592,0,0.1,0.07,,"
+    },
+    {
+      "name": "a UD18 with a load",
+      "hex": "FF5501030001CD00007F003CC80000554E0009000A00000047300D3C000000000000008F",
+      "expect": {
+        "kind": "usb",
+        "voltage": 4.61,
+        "current": 1.27,
+        "power": 5.855,
+        "temperature_c": 0,
+        "duration_s": 258493,
+        "backlight_s": 60,
+        "checksum_ok": true,
+        "energy_wh": 218.38,
+        "capacity_ah": 15.56,
+        "d_minus_v": 0.09,
+        "d_plus_v": 0.1
+      },
+      "csv": "4.61,1.27,5.855,218.38,15.56,0,0.1,0.09,,"
+    },
+    {
+      "name": "an AC meter",
+      "hex": "FF55010100090400000E0000040000000000006401F40085002F00000A093C0000000039",
+      "expect": {
+        "kind": "ac",
+        "voltage": 230.8,
+        "current": 0.014,
+        "power": 0.4,
+        "temperature_c": 47,
+        "duration_s": 609,
+        "backlight_s": 60,
+        "checksum_ok": true,
+        "energy_wh": 0,
+        "frequency_hz": 50,
+        "power_factor": 0.133,
+        "price_per_kwh": 1
+      },
+      "csv": "230.8,0.014,0.4,0,,47,,,50,0.133"
+    },
+    {
+      "name": "a DC meter",
+      "hex": "FF55010200011A00003C0004D40000002000006400000000002600590D363C00000000F0",
+      "expect": {
+        "kind": "dc",
+        "voltage": 28.2,
+        "current": 0.06,
+        "power": 1.692,
+        "temperature_c": 38,
+        "duration_s": 321234,
+        "backlight_s": 60,
+        "checksum_ok": true,
+        "price_per_kwh": 1
+      },
+      "csv": "28.2,0.06,1.692,,,38,,,,"
+    }
+  ],
+  "notReports": [
+    {
+      "name": "a reply frame",
+      "hex": "FF55020101000040"
+    },
+    {
+      "name": "a report cut short",
+      "hex": "FF5501030001F3000000000638000003110007000A000000122E333C00000000000000"
+    },
+    {
+      "name": "a report with an unknown device type",
+      "hex": "FF5501090001F3000000000638000003110007000A000000122E333C000000000000004E"
+    }
+  ],
+  "streams": [
+    {
+      "name": "a report that arrives in two notifications",
+      "chunks": ["FF5501030001F300000000063800000311000700", "0A000000122E333C000000000000004E"],
+      "readings": [
+        {
+          "voltage": 4.99,
+          "current": 0,
+          "checksum_ok": true
+        }
+      ]
+    },
+    {
+      "name": "a stream that starts in the middle of a frame and has a reply between two reports",
+      "chunks": [
+        "1234FF5501030001F3000000000638000003110007000A000000122E333C000000000000004EFF55020101000040FF55010300",
+        "01F3000000000638000003110007000A000000122E333C000000000000004E"
+      ],
+      "readings": [
+        {
+          "voltage": 4.99,
+          "current": 0,
+          "checksum_ok": true
+        },
+        {
+          "voltage": 4.99,
+          "current": 0,
+          "checksum_ok": true
+        }
+      ]
+    },
+    {
+      "name": "a header split between two notifications",
+      "chunks": [
+        "00FF",
+        "FF5501030001F3000000000638000003110007000A000000122E333C000000000000004E"
+      ],
+      "readings": [
+        {
+          "voltage": 4.99,
+          "current": 0,
+          "checksum_ok": true
+        }
+      ]
+    },
+    {
+      "name": "a report whose second half was lost",
+      "chunks": [
+        "FF5501030001F300000000063800000311000700",
+        "FF5501030001F3000000000638000003110007000A000000122E333C000000000000004E"
+      ],
+      "readings": [
+        {
+          "voltage": 4.99,
+          "current": 0,
+          "checksum_ok": true
+        }
+      ]
+    },
+    {
+      "name": "a meter that has not shown the ATorch checksum keeps damaged reports",
+      "chunks": [
+        "FF5501030011F3000000000638000003110007000A000000122E333C000000000000004E",
+        "FF5501030001F3000000000638000003110007000A000000122E333C000000000000004E",
+        "FF5501030011F3000000000638000003110007000A000000122E333C000000000000004E"
+      ],
+      "readings": [
+        {
+          "voltage": 45.95,
+          "current": 0,
+          "checksum_ok": false
+        },
+        {
+          "voltage": 4.99,
+          "current": 0,
+          "checksum_ok": true
+        },
+        {
+          "voltage": 45.95,
+          "current": 0,
+          "checksum_ok": false
+        }
+      ]
+    },
+    {
+      "name": "a meter whose checksum matched five times in a row loses a damaged report",
+      "chunks": [
+        "FF5501030001F3000000000638000003110007000A000000122E333C000000000000004E",
+        "FF5501030001F3000000000638000003110007000A000000122E333C000000000000004E",
+        "FF5501030001F3000000000638000003110007000A000000122E333C000000000000004E",
+        "FF5501030001F3000000000638000003110007000A000000122E333C000000000000004E",
+        "FF5501030001F3000000000638000003110007000A000000122E333C000000000000004E",
+        "FF5501030011F3000000000638000003110007000A000000122E333C000000000000004E",
+        "FF5501030001F3000000000638000003110007000A000000122E333C000000000000004E"
+      ],
+      "readings": [
+        {
+          "voltage": 4.99,
+          "current": 0,
+          "checksum_ok": true
+        },
+        {
+          "voltage": 4.99,
+          "current": 0,
+          "checksum_ok": true
+        },
+        {
+          "voltage": 4.99,
+          "current": 0,
+          "checksum_ok": true
+        },
+        {
+          "voltage": 4.99,
+          "current": 0,
+          "checksum_ok": true
+        },
+        {
+          "voltage": 4.99,
+          "current": 0,
+          "checksum_ok": true
+        },
+        {
+          "voltage": 4.99,
+          "current": 0,
+          "checksum_ok": true
+        }
+      ]
+    },
+    {
+      "name": "a J7-C whose checksum matches a few times by chance keeps all its reports",
+      "chunks": [
+        "FF5501030001D900006C0003070000016E004B004B001F00002C0D3C0DAC012C032000B2",
+        "FF5501030001D900006C0003070000016E004B004B001F00002C0D3C0DAC012C032000B2",
+        "FF5501030001D900006A0003070000016E004A004B001F00002C0E3C0DAC012C032000E7",
+        "FF5501030001D900006C0003070000016E004B004B001F00002C0D3C0DAC012C032000B2",
+        "FF5501030001D900006C0003070000016E004B004B001F00002C0D3C0DAC012C032000B2",
+        "FF5501030001D900006C0003070000016E004B004B001F00002C0D3C0DAC012C032000B2",
+        "FF5501030001D900006A0003080000016E004B004B001E00002C0F3C0DAC012C03200054",
+        "FF5501030001D900006B0003080000016F004B004B001F00002C103C0DAC012C032000C5"
+      ],
+      "readings": [
+        {
+          "voltage": 4.73,
+          "current": 1.08,
+          "checksum_ok": true
+        },
+        {
+          "voltage": 4.73,
+          "current": 1.08,
+          "checksum_ok": true
+        },
+        {
+          "voltage": 4.73,
+          "current": 1.06,
+          "checksum_ok": false
+        },
+        {
+          "voltage": 4.73,
+          "current": 1.08,
+          "checksum_ok": true
+        },
+        {
+          "voltage": 4.73,
+          "current": 1.08,
+          "checksum_ok": true
+        },
+        {
+          "voltage": 4.73,
+          "current": 1.08,
+          "checksum_ok": true
+        },
+        {
+          "voltage": 4.73,
+          "current": 1.06,
+          "checksum_ok": false
+        },
+        {
+          "voltage": 4.73,
+          "current": 1.07,
+          "checksum_ok": false
+        }
+      ]
+    }
+  ],
+  "names": [
+    {
+      "name": "UC96_BLE",
+      "known": true
+    },
+    {
+      "name": "UD18-BLE",
+      "known": true
+    },
+    {
+      "name": "AT24-BLE",
+      "known": true
+    },
+    {
+      "name": "DL24M_BLE",
+      "known": true
+    },
+    {
+      "name": "DT24",
+      "known": true
+    },
+    {
+      "name": "AT3010-BLE",
+      "known": true
+    },
+    {
+      "name": "UD24-BLE",
+      "known": true
+    },
+    {
+      "name": "DT3010",
+      "known": true
+    },
+    {
+      "name": "\u0000UC96_BLE",
+      "known": false
+    },
+    {
+      "name": "uc96_ble",
+      "known": false
+    },
+    {
+      "name": "Galaxy Buds2",
+      "known": false
+    },
+    {
+      "name": "",
+      "known": false
+    },
+    {
+      "name": "UC9",
+      "known": false
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+[package]
+name = "usbmeter"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Records the readings of a Bluetooth USB meter to a CSV file"
+publish = false
+
+[dependencies]
+btleplug = "0.13"
+clap = { version = "4", features = ["derive"] }
+futures = "0.3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "time", "sync"] }
+uuid = "1"
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+lto = true
+strip = true

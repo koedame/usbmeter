@@ -1,6 +1,7 @@
 name: audit
 
-# Audits the lockfile against the npm advisory database. A new advisory can
+# Audits the lockfile against the npm advisory database, and the command-line recorder's
+# Cargo.lock (cli/) against the RustSec advisory database. A new advisory can
 # appear without any change to this repository, so besides pushes and pull
 # requests that touch the lockfile this runs every week; a failing scheduled
 # run is how a freshly published advisory reaches us.
@@ -20,6 +21,9 @@ on:
     paths:
       - pnpm-lock.yaml
       - package.json
+      - cli/Cargo.lock
+      - cli/Cargo.toml
+      - cli/deny.toml
       - .github/workflows/audit.yml
   schedule:
     - cron: "17 3 * * 1"
@@ -36,3 +40,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - run: pnpm audit --audit-level high
+
+  audit-cargo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
+        with:
+          tool: cargo-deny
+      - run: cargo deny check advisories
+        working-directory: cli
