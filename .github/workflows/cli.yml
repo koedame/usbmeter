@@ -100,16 +100,20 @@ jobs:
           cp ../LICENSE THIRD-PARTY-LICENSES.txt "$name/"
           if [ "$RUNNER_OS" = Windows ]; then
             cp target/${{ matrix.target }}/release/usbmeter.exe "$name/"
-            tar -a -cf "$name.zip" "$name"
             echo "ARCHIVE=$name.zip" >> "$GITHUB_ENV"
           else
             cp target/${{ matrix.target }}/release/usbmeter "$name/"
             tar -czf "$name.tar.gz" "$name"
             echo "ARCHIVE=$name.tar.gz" >> "$GITHUB_ENV"
           fi
+      # the tar on the Windows runner's PATH is GNU tar, which cannot write a zip
+      - name: Pack (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path usbmeter-${{ matrix.target }} -DestinationPath usbmeter-${{ matrix.target }}.zip
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: usbmeter-${{ matrix.target }}
           path: cli/${{ env.ARCHIVE }}
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
