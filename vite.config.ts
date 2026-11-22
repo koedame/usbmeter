@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
 
-/** robots.txt and sitemap.xml name the site's address, so they are written from VITE_SITE_URL at build time. */
+/** robots.txt, sitemap.xml and llms.txt name the site's address, so they are written from VITE_SITE_URL at build time. */
 function siteFiles(siteUrl: string): Plugin {
   return {
     name: "site-files",
@@ -8,12 +8,29 @@ function siteFiles(siteUrl: string): Plugin {
       this.emitFile({
         type: "asset",
         fileName: "robots.txt",
-        source: `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`,
+        source: `User-agent: *\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`,
       });
       this.emitFile({
         type: "asset",
         fileName: "sitemap.xml",
         source: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>${siteUrl}/</loc></url>\n</urlset>\n`,
+      });
+      this.emitFile({
+        type: "asset",
+        fileName: "llms.txt",
+        source: `# USB Meter Web
+
+> A web page that shows live voltage, current, power and capacity from a Bluetooth USB tester (ATorch UD18, AT24, J7-C and similar meters) in the browser, with graphs, CSV export and an export made for AI analysis. It runs entirely in the browser, sends no data anywhere and needs no account.
+
+## Pages
+
+- [USB Meter Web](${siteUrl}/): the tool itself (needs Chrome or Edge for Web Bluetooth)
+- [USB Meter Web as Markdown](${siteUrl}/index.md): how to use it, supported meters, browser support, privacy and questions
+
+## Source
+
+- [koedame/usbmeter on GitHub](https://github.com/koedame/usbmeter): MIT licensed source and issues
+`,
       });
     },
   };
