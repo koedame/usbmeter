@@ -315,3 +315,10 @@ Windows のタスク スケジューラ）は、上の英語の節 “Command li
 
 MIT. Not affiliated with ATorch, any meter maker or any AI provider; product names belong to
 their owners.
+
+The site's `robots.txt` carries a `Content-Signal` line. It is a statement of preference to the
+crawlers that fetch the site's pages, not a condition of the license: the MIT License is
+unchanged, and the source code can be used under it for any purpose, training included.
+
+日本語: サイトの `robots.txt` にある `Content-Signal` は、ページを巡回する側への意思表示で、ライセンスの
+条件ではありません。MIT ライセンスは変わらず、ソースコードは学習を含むどの用途にも、その条件で使えます。
