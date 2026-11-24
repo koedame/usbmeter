@@ -245,3 +245,59 @@ describe("median", () => {
     }
   });
 });
+
+/**
+ * Values in the order that makes a selection with the middle value as its pivot split them as
+ * unevenly as it can: every value starts unknown, and a value is fixed, below all the unknown
+ * ones, when it is first compared as the pivot (McIlroy's adversary for quicksort).
+ */
+function unevenOrder(count: number): Float64Array {
+  const value = new Float64Array(count).fill(Number.POSITIVE_INFINITY);
+  let fixed = 0;
+  const fix = (item: number) => {
+    if (value[item] === Number.POSITIVE_INFINITY) value[item] = fixed++;
+  };
+  const items = Array.from({ length: count }, (_, i) => i);
+  const at = (i: number) => items[i] ?? 0;
+  const k = count >> 1;
+  let left = 0;
+  let right = count - 1;
+  while (left < right) {
+    const pivot = at((left + right) >> 1);
+    let i = left;
+    let j = right;
+    while (i <= j) {
+      for (;;) {
+        if (value[at(i)] === Number.POSITIVE_INFINITY) fix(pivot);
+        if (!((value[at(i)] ?? 0) < (value[pivot] ?? 0))) break;
+        i++;
+      }
+      for (;;) {
+        if (value[at(j)] === Number.POSITIVE_INFINITY) fix(pivot);
+        if (!((value[at(j)] ?? 0) > (value[pivot] ?? 0))) break;
+        j--;
+      }
+      if (i <= j) {
+        [items[i], items[j]] = [at(j), at(i)];
+        i++;
+        j--;
+      }
+    }
+    if (k <= j) right = j;
+    else if (k >= i) left = i;
+    else break;
+  }
+  for (let i = 0; i < count; i++) fix(i);
+  return value;
+}
+
+describe("median of values in an unfavourable order", () => {
+  it("when the values come in the order that splits them most unevenly, still finds the median of 20,000 in a few milliseconds", () => {
+    // in this order a selection that only splits takes about 0.2 s here, and the time grows with the square of the count
+    const values = unevenOrder(20_000).map((v) => v / 100);
+    const started = performance.now();
+    const found = median(values);
+    expect(performance.now() - started).toBeLessThan(50);
+    expect(found).toBe((9_999 + 10_000) / 2 / 100);
+  });
+});
