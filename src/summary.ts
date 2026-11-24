@@ -54,7 +54,9 @@ const PAUSE_MIN_S = 3;
 /**
  * The middle of `values`, or the mean of the two in the middle, without sorting them all: a
  * selection (Hoare's) finds it in linear time, so the dashboard can redo it for every reading of
- * a long recording. It reorders `values`. NaN when there are none.
+ * a long recording. In an order of the values that keeps splitting them unevenly, the selection
+ * would take time in the square of their number, so after a few times too many splits it sorts
+ * what is left instead (as introselect does). It reorders `values`. NaN when there are none.
  */
 export function median(values: Float64Array): number {
   const half = values.length >> 1;
@@ -70,7 +72,14 @@ export function median(values: Float64Array): number {
 function select(values: Float64Array, k: number): number {
   let left = 0;
   let right = values.length - 1;
+  // splits an even split would need, twice over
+  let splits = 2 * Math.ceil(Math.log2(values.length + 1));
   while (left < right) {
+    if (splits === 0) {
+      values.subarray(left, right + 1).sort();
+      break;
+    }
+    splits -= 1;
     const pivot = values[(left + right) >> 1] ?? 0;
     let i = left;
     let j = right;
