@@ -1,39 +1,51 @@
+English · [日本語](README.ja.md)
+
+<div align="center">
+
 # USB Meter Web
 
 **Your Bluetooth USB tester on a full-screen dashboard, right in the browser.**
-No app to install, no account, no ads.
 
-**[Open USB Meter Web →](https://usbmeter.koeda.me)**
+### [Open USB Meter Web →](https://usbmeter.koeda.me)
 
-![Voltage, current and power plotted on one time axis, with temperature, the USB data lines and the totals below](docs/dashboard.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.png">
+  <img alt="The dashboard running the demo: voltage, current and power plotted on one time axis with a cursor reading out every value, temperature, the USB data lines and the totals below" src="docs/images/hero-light.png">
+</picture>
+
+[![check](https://github.com/koedame/usbmeter/actions/workflows/check.yml/badge.svg)](https://github.com/koedame/usbmeter/actions/workflows/check.yml)
+![Chrome · Edge](https://img.shields.io/badge/browser-Chrome%20%C2%B7%20Edge-1f5fbf)
+![11 languages](https://img.shields.io/badge/languages-11-1f5fbf)
+![License: MIT](https://img.shields.io/badge/license-MIT-1f5fbf)
+
+[Use it](#use-it) · [Supported meters](#supported-meters) · [Analyse with AI](#analyse-a-recording-with-ai) · [Command line](#command-line-record-without-a-browser-tab) · [Privacy](#privacy)
+
+</div>
 
 Cheap USB testers like the **J7-C** and the **ATorch UD18** measure well, but their phone apps
 are slow to pair, full of ads or no longer updated. USB Meter Web reads the same Bluetooth
-stream straight from the meter and shows everything it sends, all at once.
+stream straight from the meter and shows everything it sends, all at once. No app to install,
+no account, no ads.
 
-## What you get
+## Highlights
 
-- **Every reading at a glance.** Voltage, current and power each get a large readout and their
-  own graph. Temperature and the USB data lines (D+/D−) sit below, next to capacity, energy and
-  elapsed time.
-- **One time axis.** Point at any graph and a cursor reads out every value at that moment, so
-  you can see what the voltage did when the current jumped. A level line follows the pointer
-  and reads out its height on the axis.
+- **Every reading at a glance, on one time axis.** Voltage, current and power each get a large
+  readout and their own graph. Temperature and the USB data lines (D+/D−) sit below, next to
+  capacity, energy and elapsed time. Point at any graph and a cursor reads out every value at
+  that moment, so you can see what the voltage did when the current jumped. A level line
+  follows the pointer and reads out its height on the axis.
 - **Min, average, median and max** of voltage, current, power and temperature for the last
   minute, 10 minutes, hour or the whole recording, drawn as guide lines across each graph.
-- **CSV export.** Download the recording and keep working on it in a spreadsheet or a script.
-- **Ready for AI analysis.** **Export for AI** packs the recording into a ZIP with a README
-  that tells Claude, ChatGPT or any other assistant what you measured, what every column means
-  and how to analyse it. You ask the question; the explaining is done.
-- **A device list without the clutter.** The Bluetooth list shows meters, not your keyboard,
-  mouse and earbuds.
+- **CSV export, ready for AI analysis.** Download the recording and keep working on it in a
+  spreadsheet or a script. **Export for AI** packs it into a ZIP with a README that tells
+  Claude, ChatGPT or any other assistant what you measured, what every column means and how to
+  analyse it. You ask the question; the explaining is done.
 - **Private by design.** Readings stay in your browser and are never sent anywhere. No cookies,
   no analytics.
-- **Desk or pocket.** The dashboard fills a monitor and stacks into one column on a phone, in
-  light or dark.
-- **In your language.** English, Deutsch, Español, Français, Italiano, Português (Brasil),
-  Русский, 日本語, 한국어, 简体中文 and 繁體中文. The page starts in the language your browser
-  asks for and has a list for choosing another.
+- **Desk or pocket, in 11 languages.** The dashboard fills a monitor and stacks into one column
+  on a phone, in light or dark. English, Deutsch, Español, Français, Italiano, Português
+  (Brasil), Русский, 日本語, 한국어, 简体中文 and 繁體中文: the page starts in the language your
+  browser asks for and has a list for choosing another.
 - **No meter at hand?** **Try the demo** plays a pretend charger so you can look around first.
 
 ## Use it
@@ -43,7 +55,7 @@ stream straight from the meter and shows everything it sends, all at once.
    already, unplug it and plug it back in.
 3. Choose **Connect to meter** straight away and pick the meter in the browser's Bluetooth list.
    A J7-C shows up as `UC96_BLE`, ATorch meters under their model name (`UD18-BLE`, `AT24-BLE`,
-   ...). Readings start at once.
+   ...). The list shows meters, not your keyboard, mouse and earbuds. Readings start at once.
 
 **Meter not in the list?** Unplug it, plug it back in and choose **Connect to meter** again
 straight away. Some meters, the J7-C among them, can only be found shortly after they get power,
@@ -154,6 +166,9 @@ the computer needs a Bluetooth adapter that supports Low Energy.
 
 ### Run it in the background
 
+<details>
+<summary>Linux (systemd), macOS (launchd) and Windows (Task Scheduler)</summary>
+
 These examples start the recorder at login and start it again when it stops by itself. Change
 the paths and the meter name; `usbmeter scan` shows the name.
 
@@ -220,6 +235,8 @@ schtasks /Delete /TN usbmeter /F
 
 Task Scheduler ends a task at once instead of asking it to stop; every row is already written.
 
+</details>
+
 ## Privacy
 
 Everything runs in your browser. Readings are kept in memory while the page is open and are
@@ -231,16 +248,10 @@ forbid scripts from, and connections to, any other origin, and a test pins them
 Like any website, the page is delivered by a hosting provider, which sees your IP address when
 you load it.
 
-## About this page
-
-- **Who runs it:** koedame, an individual. Questions and bug reports go to the
-  [issues](https://github.com/koedame/usbmeter/issues), security problems to
-  [SECURITY.md](SECURITY.md).
-- **No warranty:** the page and the command-line program are provided as is, under the [MIT License](LICENSE). Readings can
-  be wrong. It is not a calibrated instrument and not a safety device: do not use it to decide
-  whether a circuit, a charger or an appliance is safe.
-
 ## How it talks to the meter
+
+<details>
+<summary>The frame format, and where it comes from</summary>
 
 The meters stream their readings from a serial-over-Bluetooth characteristic (service `0xFFE0`,
 characteristic `0xFFE1`). Every frame is `FF 55 <type> <payload> <checksum>`. A report (type
@@ -255,70 +266,30 @@ The layout is based on community notes
 [this forum thread](https://forum.arduino.cc/t/usb-digital-tester-bt-protocol/943891). Capacity is
 read as mAh (value ÷ 1000 Ah); the UD18 sample packets are consistent with that.
 
+</details>
+
 ## Contributing
 
 Bug reports, meter names and captures from meters that are not listed are all welcome.
 [CONTRIBUTING.md](CONTRIBUTING.md) explains how to run the page locally and how it is tested
 without a meter. It is plain TypeScript with no runtime dependencies.
 
-## 日本語
+Questions and bug reports go to the [issues](https://github.com/koedame/usbmeter/issues),
+security problems to [SECURITY.md](SECURITY.md).
 
-Bluetooth 対応の USB テスター（J7-C・ATorch UD18・AT24 など）の値を、ブラウザのダッシュボードで
-見るためのページです。アプリのインストールもアカウントも要りません。画面は日本語で表示されます
-（ブラウザの言語に合わせて選ばれ、右上の一覧から変えられます）。
+## Disclaimer
 
-- 電圧・電流・電力を大きな数字とグラフで同時に表示。温度と D+/D− もその下に並びます
-- グラフは全部同じ時間軸。どれかにポインタを置くと、その瞬間の全部の値が出ます
-- 表示している範囲（1 分・10 分・1 時間・全部）の最小・平均・最大
-- 記録は CSV で保存できます
-- 「AI 用にエクスポート」は、記録の CSV と、測ったもの・各列の意味・分析の進め方を書いた README を
-  1 つの ZIP にします。Claude や ChatGPT に渡して日本語で質問すれば、説明なしで分析が始まります
-  （README は英語で書かれています）。同じ内容の Claude 用スキルも `skills/usbmeter-analysis` にあります
-- Bluetooth の一覧にはメーターだけが並びます
-- 値はブラウザの中だけで扱い、どこにも送りません
-
-使い方:
-
-1. Chrome か Edge（Windows・macOS・ChromeOS・Android。Linux の Chrome は、先に
-   `chrome://flags/#enable-experimental-web-platform-features` を有効にします）で
-   [usbmeter.koeda.me](https://usbmeter.koeda.me) を開きます。
-2. メーターを充電器と測りたい機器の間に挿します。挿したままだったときは、一度抜いて挿し直します。
-3. すぐに「メーターに接続」を押して、一覧からメーターを選びます。J7-C は `UC96_BLE` という名前で出ます。
-
-**一覧にメーターが出ないときは、メーターを抜いて挿し直し、すぐにもう一度「メーターに接続」を押してください。**
-J7-C など、電源が入った直後しか見つからないメーターがあります。
-
-iPhone・iPad の Safari は Web Bluetooth に対応していません。メーターが手元に無くても、「デモを試す」で画面を試せます。
-
-### コマンドライン版
-
-何時間・何日も記録するときは、ブラウザのタブより `usbmeter` コマンド（[`cli/`](cli)）が向いています。
-Windows・macOS・Linux で動き、バックグラウンドで記録し続けます。メーターが切れても戻ればつなぎ直して
-同じファイルに書き続けます。CSV は「CSV をダウンロード」と同じ列です。
-
-```
-usbmeter scan                         # 近くのメーターを出す
-usbmeter record --out readings.csv    # Ctrl+C か SIGTERM まで記録する
-```
-
-- 報告ごとに 1 行書いてすぐ保存します。落ちても失うのは最後の 1 行までで、履歴はメモリに溜めません。
-  既にあるファイルには追記します。`--out` を省くと、今のフォルダーに `usbmeter-<日付>.csv` を作ります。時刻は UTC です
-- メーターが戻ったらつなぎ直し、切れた・つながった時刻を標準エラーに 1 行ずつ出します。
-  J7-C は電源が入った直後しか見つからないので、戻らなければ挿し直してください
-- Ctrl+C と SIGTERM では、行の途中で切らずに終了コード 0 で終わります
-- 通信はメーターとだけです。更新の確認もテレメトリもありません
-
-入れ方（Rust でビルドします）と、バックグラウンドで回す設定（Linux の systemd・macOS の launchd・
-Windows のタスク スケジューラ）は、上の英語の節 “Command line” にあります。
+- **Who runs it:** koedame, an individual.
+- **No warranty:** the page and the command-line program are provided as is, under the [MIT License](LICENSE). Readings can
+  be wrong. It is not a calibrated instrument and not a safety device: do not use it to decide
+  whether a circuit, a charger or an appliance is safe.
+- **Trademarks:** not affiliated with ATorch, any meter maker or any AI provider; product names
+  belong to their owners.
 
 ## License
 
-MIT. Not affiliated with ATorch, any meter maker or any AI provider; product names belong to
-their owners.
+MIT, see [LICENSE](LICENSE).
 
 The site's `robots.txt` carries a `Content-Signal` line. It is a statement of preference to the
 crawlers that fetch the site's pages, not a condition of the license: the MIT License is
 unchanged, and the source code can be used under it for any purpose, training included.
-
-日本語: サイトの `robots.txt` にある `Content-Signal` は、ページを巡回する側への意思表示で、ライセンスの
-条件ではありません。MIT ライセンスは変わらず、ソースコードは学習を含むどの用途にも、その条件で使えます。

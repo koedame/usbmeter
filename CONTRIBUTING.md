@@ -124,5 +124,9 @@ are translations with the same keys; the type checker stops a build in which one
 The export's README and the analysis guide stay in English: they are written for the assistant,
 which reads English and answers in the language it is asked in.
 
-The picture in the README is `docs/dashboard.png`: the demo after about a minute, with the
-pointer on the current graph. `pnpm build && node scripts/readme-picture.mjs` renders it.
+The picture in the README is `docs/images/hero-light.png` and `hero-dark.png`: the demo after
+about a minute, with the pointer on the current graph, in each colour scheme.
+`pnpm build && node scripts/readme-picture.mjs` renders both.
+
+The README has a Japanese version, `README.ja.md`. When a change touches what it says (the
+highlights, how to start, the command-line recorder), change it too.
